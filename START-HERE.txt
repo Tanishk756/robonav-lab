@@ -1,0 +1,17 @@
+ROBONAV LAB - QUICK START
+
+1. Extract the whole ZIP. Do not open the app inside the ZIP preview.
+2. Double-click index.html. If asked, choose Edge, Chrome or Firefox.
+3. Click Run mission.
+4. Click Block route ahead while the robot is moving.
+5. Click Compare planners to measure A* and Dijkstra.
+
+No installation, internet, API keys or payment required to use the app.
+All four app files must stay together: index.html, style.css, core.js, app.js.
+
+Save your map using Export map before closing the page.
+See README.md for the algorithms, limitations and optional development tests.
+See docs/PORTFOLIO.md for resume wording and a presentation outline.
+
+This build passed automated engine and DOM-adapter tests. Visual browser QA
+was unavailable in the build environment; please check it in your browser.

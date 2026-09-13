@@ -1,0 +1,21 @@
+✔ both planners find the known shortest diagonal route (4.145287ms)
+✔ unreachable goal and occupied endpoint are rejected (1.942783ms)
+✔ diagonal corner cutting is forbidden (0.592611ms)
+✔ planner costs agree on repeatable scenarios (15.028007ms)
+✔ raycast measures exact wall distance (2.714127ms)
+✔ differential drive integrates straight and curved motion (0.392449ms)
+✔ controller completes every preset without a collision (101.839998ms)
+✔ all presets complete at minimum and maximum configurable speeds (63.081712ms)
+✔ inserting an obstacle forces a valid replan (4.545571ms)
+✔ map import rejects malformed maps (0.749854ms)
+✔ UI initializes, runs, pauses, replans, compares, exports, and resets (183.657916ms)
+✔ map editor and preset controls invalidate comparison and change route (52.436818ms)
+✔ invalid map import gives a readable error and preserves the app (14.658025ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 895.987418

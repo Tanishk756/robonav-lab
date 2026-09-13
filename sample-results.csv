@@ -1,0 +1,9 @@
+scenario,algorithm,cruise_m_s,path_m,expanded_cells,median_planning_ms,arrival_time_s,driven_m,tracking_rmse_m,status
+empty,astar,1.6,32.041631,122,0.058134,29.433333,31.899353,0.019028,arrived
+empty,dijkstra,1.6,32.041631,646,0.189624,29.133333,31.900959,0.014521,arrived
+warehouse,astar,1.6,36.727922,265,0.070321,37.866667,36.343108,0.026894,arrived
+warehouse,dijkstra,1.6,36.727922,544,0.104265,36.333333,36.502033,0.020727,arrived
+corridors,astar,1.6,57.455844,362,0.067253,57.016667,57.079779,0.024140,arrived
+corridors,dijkstra,1.6,57.455844,504,0.074840,56.366667,57.146440,0.021325,arrived
+clutter,astar,1.6,32.627417,124,0.023011,32.133333,32.352829,0.028843,arrived
+clutter,dijkstra,1.6,32.627417,584,0.096820,32.133333,32.348870,0.028603,arrived
