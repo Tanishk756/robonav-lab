@@ -1,15 +1,16 @@
-# Design and implementation record
+# RoboNav Lab v1.1 design
 
-User-approved scope: a Windows-friendly offline robotics simulator with editable maps, A*/Dijkstra, differential-drive motion, LiDAR visualisation, runtime replanning, metrics, exports, tests and portfolio documentation.
+Maintainer: Tanishk Singhal.
 
-Architecture: classic JavaScript scripts and HTML Canvas. `core.js` exports a pure robotics API plus a Simulation class to both CommonJS and the browser. `app.js` owns UI state and consumes the engine. No dependencies or network requests in the application.
+The existing offline simulator is extended without introducing runtime dependencies. The robotics engine remains independent of the browser adapter.
 
-Implementation sequence completed:
+1. Physical occupancy is retained for sensors and footprint collision checks.
+2. Configuration-space occupancy is derived from robot radius plus margin.
+3. A*/Dijkstra searches valid cell centres and checks clearance on candidate edges.
+4. A waypoint controller or guarded pursuit controller produces wheel commands.
+5. Exact constant-command integration advances the circular robot at 1/60 s.
+6. Metrics and benchmark runs use the same engine. UI exports map and settings together.
 
-1. Define correctness checks for optimal planning, corner constraints, raycasting, drive integration and complete missions.
-2. Implement the heap-based planners, four maps, LiDAR, collision guard and simulation; run those checks.
-3. Build the editable canvas, live telemetry, controls, repeated comparisons and exports.
-4. Check interaction wiring using a DOM test double, and test the minimum/maximum speed settings.
-5. Produce actual benchmark CSV, document validation limits, and package the offline application.
+Configuration changes reset the mission; map edits trigger replanning. Invalid configuration and maps produce explicit errors. Complete-mission comparisons are bounded to 600 simulation seconds. The default robot radius is 0.24 m with 0.12 m margin and 0.9 m pursuit lookahead.
 
-Design boundary: fully known occupancy, ground-truth pose and ideal motion/sensing. The interface explicitly distinguishes this from SLAM, physical deployment, and production autonomy.
+Publication uses ordinary static GitHub Pages hosting from main/root. No account data, external APIs or secrets are part of the application.

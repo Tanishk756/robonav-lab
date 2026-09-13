@@ -13,6 +13,7 @@ function boot(){
   }
   for(const match of html.matchAll(/id="([^"]+)"/g))nodes.set(match[1],new Element(match[1]));
   nodes.get('algorithm').value='astar';nodes.get('speed').value='1.6';nodes.get('scenario').value='warehouse';
+  for(const [id,value] of Object.entries({controller:'waypoint',radius:'0.24',margin:'0.12',lookahead:'0.9'}))nodes.get(id).value=value;
   const buttons=['wall','erase','start','goal'].map(t=>{const b=new Element();b.dataset.tool=t;return b;});
   const document={getElementById:id=>{assert.ok(nodes.has(id),'unknown DOM id '+id);return nodes.get(id);},querySelectorAll:()=>buttons,createElement:()=>new Element(),createTextNode:t=>t,addEventListener:(k,v)=>handlers[k]=v};
   const context={window:{RoboNav:require('../core.js')},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:()=>'',revokeObjectURL(){}},console};
@@ -44,4 +45,19 @@ test('map editor and preset controls invalidate comparison and change route',()=
 test('invalid map import gives a readable error and preserves the app',async()=>{
   const {nodes:n}=boot();await n.get('mapFile').onchange({target:{files:[{size:2,text:async()=>'{}'}],value:'bad.json'}});
   assert.match(n.get('toast').textContent,/Import failed/);assert.equal(n.get('status').textContent,'Ready to navigate');
+});
+test('robot configuration resets mission and controller comparison exports results',()=>{
+  const {nodes:n,downloads}=boot();n.get('controller').value='pursuit';n.get('controller').onchange();
+  n.get('compareControllers').click();assert.equal(n.get('controllerResults').children.length,2);
+  n.get('exportControllers').click();assert.ok(downloads.includes('robonav-controller-comparison.csv'));
+  n.get('radius').value='0.6';n.get('radius').onchange();assert.equal(n.get('exportControllers').disabled,true);
+  n.get('radius').value='NaN';n.get('radius').onchange();assert.match(n.get('toast').textContent,/Invalid radius/);
+});
+test('map import restores robot settings and accepts legacy maps',async()=>{
+  const {nodes:n}=boot(),R=require('../core.js');
+  const data={...R.makeMap('empty'),robot:{controller:'pursuit',radius:.4,margin:.2,lookahead:1.2},speed:2,algorithm:'dijkstra'};
+  await n.get('mapFile').onchange({target:{files:[{size:4000,text:async()=>JSON.stringify(data)}],value:'map.json'}});
+  assert.equal(n.get('controller').value,'pursuit');assert.equal(n.get('radius').value,.4);assert.equal(n.get('algorithm').value,'dijkstra');
+  await n.get('mapFile').onchange({target:{files:[{size:4000,text:async()=>JSON.stringify(R.makeMap('empty'))}],value:'legacy.json'}});
+  assert.equal(n.get('controller').value,'waypoint');assert.equal(n.get('radius').value,.24);
 });

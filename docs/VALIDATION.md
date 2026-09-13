@@ -1,40 +1,48 @@
-# Validation record — 2026-09-13
+# Validation — RoboNav Lab v1.1
 
-## Result
+Date: 2026-09-13. Runtime: Node.js 24.19.0 on Linux.
 
-13 automated tests passed, 0 failed. Eight default-speed benchmark combinations reached the goal. Four scenarios also passed at both 0.4 and 3.0 m/s, in addition to the default 1.6 m/s.
+## Automated results
 
-Environment: Node.js 24.19.0, Linux. Application runtime dependencies: none.
+**20 tests passed; zero failures.** Captured output: [test-output.txt](test-output.txt).
 
-## Evidence
+```sh
+node --test tests/core.test.cjs tests/ui.test.cjs
+node benchmark.cjs
+```
 
-Command: `node --test tests/core.test.cjs tests/ui.test.cjs`
+The benchmark contains 16 combinations: four maps × two planners × two controllers, at 1.6 m/s, radius 0.24 m and margin 0.12 m. **All 16 reached the goal.** Actual measurements are in [sample-results.csv](../sample-results.csv).
 
-The complete captured output is in `test-output.txt`.
+The pursuit test separately covers four maps × two planners × three speed settings (0.4, 1.6 and 3.0 m/s). Every mission reached its goal; each committed step was checked against the configured circular clearance footprint.
 
-Engine checks cover a known optimal route, unreachable and occupied endpoints, forbidden corner cutting, agreement between planners across presets, exact LiDAR wall distance, straight/curved drive integration, mission completion, speed extremes, runtime obstacle replanning, and malformed map rejection.
+## Warehouse example
 
-UI adapter checks cover application initialization, run/pause/reset, simulated animation-frame updates, obstacle insertion, comparisons, export event wiring, help dialog, map editing, preset/planner/speed controls, and invalid imports. They run against a minimal DOM test double with no-op canvas methods. They verify application code paths, not rendering, actual download bytes, layout, or browser compatibility.
+Same A* path, 1.6 m/s cruise setting, 0.24 m radius, 0.12 m margin:
 
-Command: `node benchmark.cjs`
+| Controller | Simulation time (s) | Driven distance (m) | Tracking RMSE (m) |
+|---|---:|---:|---:|
+| Waypoints | 37.866667 | 36.343108 | 0.026894 |
+| Guarded pursuit | 29.516667 | 35.187207 | 0.074167 |
 
-Actual output is in `../sample-results.csv`. Both planners report equal optimal grid costs in each environment:
+This shows a time/error trade-off in one idealised scenario. It is not evidence that pursuit is universally superior. Corner rounding and arrival tolerance can make driven distance shorter than the grid path length.
 
-| Scenario | Optimal path (m) | A* expanded cells | Dijkstra expanded cells | Mission result |
-|---|---:|---:|---:|---|
-| Open floor | 32.041631 | 122 | 646 | Both arrived |
-| Warehouse | 36.727922 | 265 | 544 | Both arrived |
-| Alternating corridors | 57.455844 | 362 | 504 | Both arrived |
-| Seeded clutter | 32.627417 | 124 | 584 | Both arrived |
+## Coverage
 
-For the default warehouse/A* run at 1.6 m/s: simulation travel time 37.866667 s, distance driven 36.343108 m, tracking RMSE 0.026894 m. Driven distance can be shorter than the grid polyline because waypoint tolerance permits slight corner rounding and arrival tolerance stops within 0.12 m of the goal centre.
+- Known optimal grid route, unreachable/occupied endpoints, corner-cut prohibition and planner cost agreement.
+- LiDAR wall intersection and exact straight/curved differential-drive integration.
+- Default waypoint missions and speed extrema.
+- Footprint inflation rejects a narrow passage for a larger robot without changing physical occupancy.
+- Graph transitions pass conservative segment-clearance checks.
+- Pursuit completion matrix, dynamic insertion/replanning and deterministic complete-mission comparisons.
+- Invalid robot configuration rejection.
+- UI-adapter initialization, run/pause/reset, editing, configuration changes, comparisons, exports, malformed imports and legacy/current map imports.
 
-Do not interpret sub-millisecond planner times as universal performance guarantees. Re-run on the target computer and retain the exported map, runtime, and settings with results.
+## Validation limits
 
-## Not verified
+UI-adapter tests use a minimal DOM double and no-op canvas. They test code paths, not rendered layout, actual browser downloads or file pickers. Visual browser QA was blocked by the provided browser's local-file access policy. No claim of cross-browser certification, Windows execution testing, formal safety guarantees or hardware validation is made.
 
-The provided cloud browser rejected access to local server/local-file pages under its access policy. Visual browser QA and actual file-download/import dialogs were therefore not completed. No Windows hardware session or physical robot was available. No claim of cross-browser certification or hardware readiness is made.
+Custom maps and the full continuous configuration range are not exhaustively tested. Conservative guards can stop a mission that has a valid graph route. Sub-millisecond timing differences depend on runtime warm-up, CPU scheduling and timer resolution. Planner timing excludes inflation preprocessing.
 
-## Quick browser acceptance check
+## Browser acceptance checklist
 
-Open the extracted `index.html`, confirm the map appears, run/pause/reset a mission, insert an obstacle, compare planners, export/re-import a map, download a CSV and PNG, and resize the browser. The application performs no network requests. Save map changes before closing.
+Open index.html, verify branding and map, run both controllers, change footprint size, insert an obstacle, compare planners/controllers, export and re-import map/settings, download CSV/PNG, and resize the browser. All functions operate without an external API.

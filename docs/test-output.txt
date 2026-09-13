@@ -1,21 +1,28 @@
-✔ both planners find the known shortest diagonal route (4.145287ms)
-✔ unreachable goal and occupied endpoint are rejected (1.942783ms)
-✔ diagonal corner cutting is forbidden (0.592611ms)
-✔ planner costs agree on repeatable scenarios (15.028007ms)
-✔ raycast measures exact wall distance (2.714127ms)
-✔ differential drive integrates straight and curved motion (0.392449ms)
-✔ controller completes every preset without a collision (101.839998ms)
-✔ all presets complete at minimum and maximum configurable speeds (63.081712ms)
-✔ inserting an obstacle forces a valid replan (4.545571ms)
-✔ map import rejects malformed maps (0.749854ms)
-✔ UI initializes, runs, pauses, replans, compares, exports, and resets (183.657916ms)
-✔ map editor and preset controls invalidate comparison and change route (52.436818ms)
-✔ invalid map import gives a readable error and preserves the app (14.658025ms)
-ℹ tests 13
+✔ both planners find the known shortest diagonal route (4.691411ms)
+✔ unreachable goal and occupied endpoint are rejected (2.601893ms)
+✔ diagonal corner cutting is forbidden (1.060758ms)
+✔ planner costs agree on repeatable scenarios (8.343638ms)
+✔ raycast measures exact wall distance (0.609973ms)
+✔ differential drive integrates straight and curved motion (0.959478ms)
+✔ controller completes every preset without a collision (133.403811ms)
+✔ all presets complete at minimum and maximum configurable speeds (163.055175ms)
+✔ inserting an obstacle forces a valid replan (11.527917ms)
+✔ map import rejects malformed maps (1.268066ms)
+✔ inflation closes a passage too narrow for the robot and preserves sensor map (12.886082ms)
+✔ planning transitions respect circular footprint clearance (3.538276ms)
+✔ pure pursuit completes all presets for both planners at all speed settings (796.730094ms)
+✔ pure pursuit handles an inserted obstacle and repeated experiments are deterministic (29.128626ms)
+✔ invalid robot settings are rejected (0.328195ms)
+✔ UI initializes, runs, pauses, replans, compares, exports, and resets (395.298812ms)
+✔ map editor and preset controls invalidate comparison and change route (248.115469ms)
+✔ invalid map import gives a readable error and preserves the app (7.789162ms)
+✔ robot configuration resets mission and controller comparison exports results (68.375329ms)
+✔ map import restores robot settings and accepts legacy maps (33.614942ms)
+ℹ tests 20
 ℹ suites 0
-ℹ pass 13
+ℹ pass 20
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 895.987418
+ℹ duration_ms 1504.833031

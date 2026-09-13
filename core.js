@@ -37,7 +37,7 @@
   }
 
   /** Optimal 8-connected search; diagonals cannot pass between blocked corners. */
-  function plan(m,start,goal,algorithm='astar') {
+  function plan(m,start,goal,algorithm='astar',clearance=0,physicalMap=m) {
     const began=now(),empty=()=>({path:[],cost:Infinity,expanded:[],ms:now()-began});
     if(blocked(m,start.x,start.y)||blocked(m,goal.x,goal.y))return empty();
     const id=p=>p.y*m.w+p.x,s=id(start),t=id(goal),n=m.w*m.h;
@@ -51,6 +51,7 @@
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
         if((!dx&&!dy)||blocked(m,x+dx,y+dy))continue;
         if(dx&&dy&&(blocked(m,x+dx,y)||blocked(m,x,y+dy)))continue;
+        if(clearance>0&&!segmentClear(physicalMap,{x:x+.5,y:y+.5},{x:x+dx+.5,y:y+dy+.5},clearance))continue;
         const v=(y+dy)*m.w+x+dx,c=g[u]+(dx&&dy?Math.SQRT2:1);
         if(c<g[v]){g[v]=c;parent[v]=u;open.push({id:v,f:c+h(x+dx,y+dy)});}
       }
@@ -79,6 +80,34 @@
       if(blocked(m,i,j)&&Math.hypot(x-clamp(x,i,i+1),y-clamp(y,j,j+1))<=r)return true;
     }return false;
   }
+  // Configuration space: an occupied cell means its centre cannot safely hold
+  // the circular footprint. Edge checks also validate travel between centres.
+  function inflateMap(m,clearance){
+    return {...m,cells:m.cells.map((value,i)=>value||Number(collides(m,i%m.w+.5,Math.floor(i/m.w)+.5,clearance)))};
+  }
+  function segmentClear(m,a,b,clearance){
+    const n=Math.max(1,Math.ceil(dist(a,b)/.05));
+    for(let i=0;i<=n;i++){const t=i/n;if(collides(m,a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,clearance+.025))return false;}
+    return true;
+  }
+  function config(options={}){
+    const number=(name,fallback,min,max)=>{const v=options[name]??fallback;if(!Number.isFinite(v)||v<min||v>max)throw Error(`Invalid ${name}: use ${min}–${max}.`);return v;};
+    const controller=options.controller??'waypoint';if(!['waypoint','pursuit'].includes(controller))throw Error('Unknown controller.');
+    return {controller,radius:number('radius',.24,.15,.7),margin:number('margin',.12,0,.3),lookahead:number('lookahead',.9,.4,1.6)};
+  }
+  function pursuitTarget(p,path,from,lookahead){
+    let best={distance:Infinity,index:from,t:0,point:path[from]};
+    for(let i=from;i<Math.min(path.length-1,from+4);i++){
+      const a=path[i],b=path[i+1],dx=b.x-a.x,dy=b.y-a.y,t=clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy||1),0,1),point={x:a.x+t*dx,y:a.y+t*dy};
+      if(dist(p,point)<best.distance)best={distance:dist(p,point),index:i,t,point};
+    }
+    let point=best.point,left=lookahead;
+    for(let i=best.index;i<path.length-1;i++){
+      const end=path[i+1],length=dist(point,end);if(left<=length)return {index:best.index,point:{x:point.x+(end.x-point.x)*left/length,y:point.y+(end.y-point.y)*left/length}};
+      left-=length;point=end;
+    }
+    return {index:best.index,point:path[path.length-1]};
+  }
   /** Exact differential-drive integration, wheel velocities in m/s. */
   function integrate(p,left,right,track,dt){
     const v=(left+right)/2,w=(right-left)/track,a=p.theta+w*dt;
@@ -88,35 +117,56 @@
   function segmentDistance(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy||1),0,1);return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);}
 
   class Simulation {
-    constructor(map,algorithm='astar',speed=1.6){this.map=validateMap(map);this.algorithm=algorithm;this.speed=speed;this.reset();}
+    constructor(map,algorithm='astar',speed=1.6,options={}){this.map=validateMap(map);this.algorithm=algorithm;this.speed=speed;this.settings=config(options);this.reset();}
     reset(){
       this.pose={...center(this.map.start),theta:0};this.status='ready';this.path=[];this.expanded=[];this.target=1;
       this.time=0;this.distance=0;this.replans=0;this.planMs=0;this.cost=0;this.v=0;this.omega=0;this.left=0;this.right=0;
-      this.errorSq=0;this.samples=0;this.error=0;this.trail=[{...this.pose}];this.telemetry=[];this.lastSample=-1;this.events=[];
+      this.errorSq=0;this.samples=0;this.error=0;this.trail=[{...this.pose}];this.telemetry=[];this.lastSample=-1;this.events=[];this.progress=0;this.fallbacks=0;this.fallbackActive=false;this.carrot=null;this.planningMap=inflateMap(this.map,this.clearance);
     }
     log(message){this.events.unshift({time:this.time,message});this.events=this.events.slice(0,30);}
     compute(){
-      const s={x:Math.floor(this.pose.x),y:Math.floor(this.pose.y)},p=plan(this.map,s,this.map.goal,this.algorithm);
-      this.path=p.path;this.expanded=p.expanded;this.planMs=p.ms;this.cost=p.cost;this.target=0;
+      this.planningMap=inflateMap(this.map,this.clearance);
+      if(collides(this.map,this.pose.x,this.pose.y,this.clearance)){this.path=[];this.expanded=[];this.cost=Infinity;this.planMs=0;this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('Robot footprint plus margin does not fit at its current position.');return false;}
+      const s={x:Math.floor(this.pose.x),y:Math.floor(this.pose.y)},p=plan(this.planningMap,s,this.map.goal,this.algorithm,this.clearance,this.map);
+      this.path=p.path;this.expanded=p.expanded;this.planMs=p.ms;this.cost=p.cost;this.target=0;this.progress=0;this.carrot=null;
       if(!p.path.length){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('No route to goal. Edit the map and plan again.');return false;}
       this.log(`${this.algorithm==='astar'?'A*':'Dijkstra'}: ${p.expanded.length} cells expanded, ${p.cost.toFixed(2)} m route`);return true;
     }
     start(){if(this.status==='arrived')this.reset();if(this.status==='paused'){this.status='running';return;}if(this.compute())this.status='running';}
     replan(){this.replans++;const wasRunning=this.status==='running';if(this.compute())this.status=wasRunning?'running':'ready';}
     get rmse(){return this.samples?Math.sqrt(this.errorSq/this.samples):0;}
+    get clearance(){return this.settings.radius+this.settings.margin;}
+    safeCommand(v,w,horizon=.4){
+      let p=this.pose;const dt=.025;
+      for(let t=0;t<horizon;t+=dt){p=integrate(p,v-w*.42/2,v+w*.42/2,.42,dt);if(collides(this.map,p.x,p.y,this.clearance+.005))return false;}
+      return true;
+    }
     step(dt){
       if(this.status!=='running')return;
       dt=clamp(dt,0,.05);
       const goal=center(this.map.goal);
       if(dist(this.pose,goal)<.12){this.status='arrived';this.v=this.omega=this.left=this.right=0;this.log('Goal reached. Mission complete.');return;}
       while(this.target<this.path.length-1&&dist(this.pose,center(this.path[this.target]))<.09)this.target++;
-      const target=center(this.path[this.target]),d=dist(this.pose,target),e=wrap(Math.atan2(target.y-this.pose.y,target.x-this.pose.x)-this.pose.theta);
+      let target=center(this.path[this.target]),d=dist(this.pose,target),e=wrap(Math.atan2(target.y-this.pose.y,target.x-this.pose.x)-this.pose.theta);
       // Rotate first on sharp turns; reduce forward speed near each waypoint.
-      const v=Math.abs(e)>.38?0:Math.min(this.speed,2.8*d)*Math.max(0,Math.cos(e));
-      const w=clamp(4.5*e,-2.5,2.5),track=.42;
+      let v=Math.abs(e)>.38?0:Math.min(this.speed,2.8*d)*Math.max(0,Math.cos(e)),w=clamp(4.5*e,-2.5,2.5);const track=.42;
+      if(this.settings.controller==='pursuit'&&this.path.length>1){
+        const aim=pursuitTarget(this.pose,this.path.map(center),this.progress,this.settings.lookahead);this.progress=aim.index;this.carrot=aim.point;
+        const error=wrap(Math.atan2(aim.point.y-this.pose.y,aim.point.x-this.pose.x)-this.pose.theta),range=dist(this.pose,aim.point);
+        const pv=Math.abs(error)>.65?0:Math.min(this.speed,2*dist(this.pose,goal))/(1+Math.abs(2*Math.sin(error)/Math.max(range,.05)));
+        const pw=pv===0?clamp(4.5*error,-2.5,2.5):clamp(2*pv*Math.sin(error)/Math.max(range,.05),-2.5,2.5);
+        const safe=this.safeCommand(pv,pw);
+        if(safe){v=pv;w=pw;this.target=Math.min(this.progress+1,this.path.length-1);}
+        else {
+          target=center(this.path[Math.min(this.progress+1,this.path.length-1)]);d=dist(this.pose,target);e=wrap(Math.atan2(target.y-this.pose.y,target.x-this.pose.x)-this.pose.theta);
+          v=Math.abs(e)>.25?0:Math.min(this.speed,2*d)*Math.max(0,Math.cos(e));w=clamp(4.5*e,-2.5,2.5);
+          if(!this.fallbackActive)this.fallbacks++;
+        }
+        this.fallbackActive=!safe;
+      }
       this.left=v-w*track/2;this.right=v+w*track/2;
       const next=integrate(this.pose,this.left,this.right,track,dt);
-      if(collides(this.map,next.x,next.y)){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('Collision guard stopped the robot. Change the map, then replan.');return;}
+      if(collides(this.map,next.x,next.y,this.clearance)){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('Clearance guard stopped the robot. Reset or adjust its route.');return;}
       this.distance+=dist(this.pose,next);this.pose=next;this.v=v;this.omega=w;this.time+=dt;
       this.error=Infinity;
       for(let i=1;i<this.path.length;i++)this.error=Math.min(this.error,segmentDistance(this.pose,center(this.path[i-1]),center(this.path[i])));
@@ -125,6 +175,11 @@
       if(this.time-this.lastSample>=.1){this.lastSample=this.time;this.trail.push({...this.pose});this.telemetry.push({time:this.time,x:this.pose.x,y:this.pose.y,theta:this.pose.theta,v,w,left:this.left,right:this.right,error:this.error});}
     }
   }
-  const api={makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked};
+  function benchmarkMission(map,algorithm,speed,options){
+    const sim=new Simulation(map,algorithm,speed,options);sim.start();
+    for(let i=0;i<36000&&sim.status==='running';i++)sim.step(1/60);
+    return {controller:sim.settings.controller,status:sim.status==='running'?'timeout':sim.status,time:sim.time,distance:sim.distance,rmse:sim.rmse,fallbacks:sim.fallbacks};
+  }
+  const api={makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,segmentClear,config,pursuitTarget,benchmarkMission};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.RoboNav=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

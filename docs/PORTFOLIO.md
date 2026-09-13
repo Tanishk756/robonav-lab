@@ -1,45 +1,26 @@
-# Portfolio presentation kit
+# RoboNav Lab — Tanishk Singhal
 
-## Title
+## Project summary
 
-RoboNav Lab — Autonomous Mobile Robot Navigation Simulator
+A browser-based mobile robotics workbench that connects grid planning to footprint-aware navigation and differential-drive control. It supports repeatable planner/controller experiments, live sensor visualisation and data exports.
 
-## Short description
+## Resume description
 
-An offline browser workbench for experimenting with mobile robot navigation. It combines optimal grid planning, differential-drive motion, waypoint control, ideal LiDAR simulation, runtime obstacle insertion, and measured planner comparisons.
+Developed RoboNav Lab, an offline mobile robot simulator integrating A*/Dijkstra, configurable footprint inflation, differential-drive kinematics and guarded pure pursuit; evaluated navigation with repeatable scenarios, tracking RMSE and CSV telemetry.
 
-## Resume bullet
+## Demonstration
 
-Developed an interactive mobile robot simulator integrating A*/Dijkstra planning, differential-drive kinematics, 360° simulated LiDAR, and obstacle-triggered replanning, with CSV telemetry and repeatable navigation benchmarks.
+1. Compare A* and Dijkstra and explain the shared optimal graph cost.
+2. Increase the robot radius and explain configuration-space occupancy.
+3. Compare waypoint control and guarded pure pursuit using travel time and RMSE.
+4. Run a mission, insert an obstacle, and demonstrate replanning.
+5. Show an unsolvable map and explain the stop condition.
+6. Export the map/settings and results to reproduce the experiment.
 
-Use this wording only when you understand and can defend the implementation. If describing your contribution precisely, say you built and validated it with AI assistance and identify the parts you modified yourself. Do not claim deployment on hardware or an autonomous mapping pipeline.
+## Technical discussion
 
-## README/project-post introduction
+Be ready to derive the octile heuristic, differential-drive velocities and pursuit curvature. Explain why LiDAR is independent of planning in this known-map simulation, why the circle/radius model is a simplification, and why simulation results are not hardware validation. Describe your own development contributions accurately and understand the code you present.
 
-RoboNav Lab makes navigation algorithms visible: I can change an environment, compare optimal routes, observe wheel-level motion commands, and insert an obstacle while a mission is running. The project separates the planner and simulator from the browser interface, so the same robotics engine can be tested without the UI.
+## Future work
 
-Its four repeatable scenarios cover open space, warehouse aisles, alternating corridors, and seeded clutter. Exported maps and CSVs make experiments reproducible. This is an idealised educational simulation with known position and map, not a real-robot autonomy system.
-
-## What to show in an interview
-
-1. **Algorithm choice:** explain why A* and Dijkstra return equal optimal costs, and why A* may expand fewer cells.
-2. **Motion model:** derive linear/angular velocity from left and right wheel speeds. Explain the coordinate convention.
-3. **Control:** explain angular proportional control, speed reduction near waypoints, and why sharp turns are made while stopped.
-4. **Sensing:** demonstrate ray-wall intersections and distinguish ground-truth map access from actual perception.
-5. **Evaluation:** compare expanded cells, path length, actual driven distance and tracking RMSE. Explain the timing caveats.
-6. **Failure:** draw a complete barrier, show the no-route state, erase an opening and recover.
-
-## Questions you should be able to answer
-
-- Why is the octile heuristic admissible for this movement graph?
-- Why must a diagonal move check the two adjacent orthogonal cells?
-- What does the min-heap change about planner performance?
-- Why can two optimal planners yield different physical travel times?
-- Is the displayed LiDAR used for planning? (No: the map is known.)
-- Is tracking RMSE the same as localisation error? (No: pose is ground truth.)
-- What would change for a larger robot? (Footprint-aware collision planning / obstacle inflation.)
-- What would be required to move this onto a physical robot? (Sensors, calibration, state estimation, timing, interfaces, dynamics, safety and hardware tests.)
-
-## Useful next contribution
-
-Pick one extension and demonstrate its effect with before/after evidence: add configurable robot footprint inflation, implement a line-of-sight path smoother, or add simulated wheel-odometry noise with a documented estimator. These are future extensions, not included features.
+Wheel-odometry noise with estimation; dynamic obstacle prediction; configurable map resolution; acceleration limits; ROS2 integration and hardware experiments. These are roadmap items, not implemented capabilities.

@@ -1,4 +1,4 @@
-ROBONAV LAB - QUICK START
+ROBONAV LAB v1.1 - TANISHK SINGHAL
 
 1. Extract the whole ZIP. Do not open the app inside the ZIP preview.
 2. Double-click index.html. If asked, choose Edge, Chrome or Firefox.
@@ -11,7 +11,9 @@ All four app files must stay together: index.html, style.css, core.js, app.js.
 
 Save your map using Export map before closing the page.
 See README.md for the algorithms, limitations and optional development tests.
-See docs/PORTFOLIO.md for resume wording and a presentation outline.
+Expand Robot configuration to change footprint or choose pure pursuit.
+Use Compare controllers for a complete-mission benchmark.
+See docs/PORTFOLIO.md for a presentation outline.
 
 This build passed automated engine and DOM-adapter tests. Visual browser QA
 was unavailable in the build environment; please check it in your browser.

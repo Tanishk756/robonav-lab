@@ -3,22 +3,30 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Offline mobile robotics laboratory: path planning, differential-drive control, LiDAR simulation and repeatable experiments.">
-  <title>RoboNav Lab — Navigation workbench</title>
+  <meta name="author" content="Tanishk Singhal">
+  <title>RoboNav Lab | Tanishk Singhal</title>
   <link rel="stylesheet" href="style.css">
   <script defer src="core.js"></script><script defer src="app.js"></script>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><span class="brand-icon" aria-hidden="true">⌘</span><div>RoboNav <b>Lab</b><small>AUTONOMOUS NAVIGATION WORKBENCH</small></div></div>
+  <div class="brand"><span class="brand-icon" aria-hidden="true">⌘</span><div>RoboNav <b>Lab</b><small>A ROBOTICS PROJECT BY TANISHK SINGHAL</small></div></div>
   <div class="top-actions"><span class="offline">OFFLINE / LOCAL</span><button id="help" class="quiet">Quick guide <span>?</span></button></div>
 </header>
 <main>
-  <div class="page-title"><div><span class="eyebrow">EXPERIMENT 01 / MOBILE ROBOTICS</span><h1>Navigate. Observe. Compare.</h1></div><span class="version">2D SIMULATION <b>v1.0</b></span></div>
+  <div class="page-title"><div><span class="eyebrow">TANISHK SINGHAL / ROBOTICS &amp; AUTONOMY</span><h1>Navigate. Observe. Compare.</h1></div><span class="version">2D SIMULATION <b>v1.1</b></span></div>
   <div class="workbench">
     <aside class="controls panel">
       <div class="section-heading"><h2>Mission setup</h2><span>01</span></div>
       <label for="scenario">Environment</label><select id="scenario"><option value="warehouse">Warehouse aisles</option><option value="corridors">Alternating corridors</option><option value="clutter">Seeded clutter · 731</option><option value="empty">Open floor</option></select>
       <label for="algorithm">Path planner</label><select id="algorithm"><option value="astar">A* · Octile heuristic</option><option value="dijkstra">Dijkstra · Uniform cost</option></select>
+      <details class="robot-config"><summary>Robot configuration</summary>
+        <label for="controller">Path-following controller</label><select id="controller"><option value="waypoint">Heading + waypoints</option><option value="pursuit">Guarded pure pursuit</option></select>
+        <label for="radius">Robot radius (m)</label><input id="radius" type="number" min="0.15" max="0.7" step="0.01" value="0.24">
+        <label for="margin">Clearance margin (m)</label><input id="margin" type="number" min="0" max="0.3" step="0.01" value="0.12">
+        <label for="lookahead">Pursuit lookahead (m)</label><input id="lookahead" type="number" min="0.4" max="1.6" step="0.1" value="0.9">
+        <p class="hint">Configuration changes reset the mission. Orange cells mark excluded robot-centre positions.</p>
+      </details>
       <div class="range-label"><label for="speed">Cruise speed</label><output id="speedValue">1.6 m/s</output></div><input id="speed" type="range" min="0.4" max="3" step="0.2" value="1.6">
       <div class="button-pair"><button id="run" class="primary">▶ Run mission</button><button id="reset" title="Reset robot" aria-label="Reset robot">↺</button></div>
       <button id="plan" class="full">Plan route</button>
@@ -36,6 +44,7 @@
       <div class="section-heading"><h2>Layers</h2><span>03</span></div>
       <label class="check"><input type="checkbox" id="showLidar" checked> LiDAR rays <span class="swatch teal-bg"></span></label>
       <label class="check"><input type="checkbox" id="showExpanded" checked> Search expansion <span class="swatch blue-bg"></span></label>
+      <label class="check"><input type="checkbox" id="showInflation" checked> Footprint inflation <span class="swatch amber-bg"></span></label>
       <label class="check"><input type="checkbox" id="showTrail" checked> Driven trajectory <span class="swatch amber-bg"></span></label>
       <div class="divider"></div>
       <div class="button-pair equal"><button id="saveMap">Export map</button><button id="loadMap">Import map</button></div>
@@ -58,11 +67,16 @@
         <div class="table-scroll"><table><thead><tr><th>Planner</th><th>Path length</th><th>Expanded cells</th><th>Median time¹</th><th>Result</th></tr></thead><tbody id="results"><tr><td colspan="5" class="empty-row">Run a comparison to measure A* and Dijkstra on your map.</td></tr></tbody></table></div>
         <div class="experiment-bottom"><span>¹ 25 searches per planner; timing depends on your browser.</span><button id="exportResults" class="quiet" disabled>Export results CSV ↓</button></div>
       </div>
+      <div class="experiment panel">
+        <div class="experiment-head"><div><span class="eyebrow">CONTROL EXPERIMENT</span><h2>Precision or smoother motion?</h2><p>Simulate both controllers from start to goal with the same robot, map and speed.</p></div><button id="compareControllers">Compare controllers</button></div>
+        <div class="table-scroll"><table><thead><tr><th>Controller</th><th>Time (s)</th><th>Driven (m)</th><th>RMSE (m)</th><th>Status</th></tr></thead><tbody id="controllerResults"><tr><td colspan="5" class="empty-row">Run a control experiment to compare complete missions.</td></tr></tbody></table></div>
+        <div class="experiment-bottom"><span>Fixed 1/60 s physics · 600 s simulation limit · no runtime insertions</span><button id="exportControllers" class="quiet" disabled>Export control CSV ↓</button></div>
+      </div>
     </section>
     <aside class="telemetry panel">
       <div class="section-heading"><h2>Robot telemetry</h2><span>LIVE</span></div>
       <div class="robot-id"><span class="robot-symbol">◎</span><div><strong>AMR–01</strong><small>Differential drive</small></div><span class="tag">SIM</span></div>
-      <dl class="readings"><div><dt>Position X</dt><dd id="poseX">3.50 m</dd></div><div><dt>Position Y</dt><dd id="poseY">3.50 m</dd></div><div><dt>Heading</dt><dd id="heading">0.0°</dd></div><div><dt>Linear velocity</dt><dd id="linear">0.00 m/s</dd></div><div><dt>Angular velocity</dt><dd id="angular">0.00 rad/s</dd></div><div><dt>Left / right wheel</dt><dd id="wheels">0.00 / 0.00</dd></div><div><dt>Replans</dt><dd id="replans">0</dd></div></dl>
+      <dl class="readings"><div><dt>Position X</dt><dd id="poseX">3.50 m</dd></div><div><dt>Position Y</dt><dd id="poseY">3.50 m</dd></div><div><dt>Heading</dt><dd id="heading">0.0°</dd></div><div><dt>Linear velocity</dt><dd id="linear">0.00 m/s</dd></div><div><dt>Angular velocity</dt><dd id="angular">0.00 rad/s</dd></div><div><dt>Left / right wheel</dt><dd id="wheels">0.00 / 0.00</dd></div><div><dt>Replans</dt><dd id="replans">0</dd></div><div><dt>Guard fallbacks</dt><dd id="fallbacks">0</dd></div></dl>
       <div class="divider"></div>
       <div class="section-heading"><h2>LiDAR scan</h2><span>360°</span></div>
       <canvas id="scan" width="240" height="200" aria-label="Robot-relative LiDAR scan"></canvas>
@@ -74,9 +88,9 @@
       <p class="hint">Ideal sensors and known map. No SLAM, noise, or real hardware connection.</p>
     </aside>
   </div>
-  <footer><span>ROBONAV LAB <b>/</b> Built for exploring robotics.</span><span>1 cell = 1 m · Robot radius 0.24 m · Wheel track 0.42 m</span></footer>
+  <footer><span>© 2026 <a href="https://github.com/Tanishk756" target="_blank" rel="noopener noreferrer">Tanishk Singhal</a> <b>/</b> RoboNav Lab</span><span>1 cell = 1 m · Configurable circular footprint · Wheel track 0.42 m</span></footer>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
-<dialog id="guide"><div class="dialog-head"><h2>Your first mission</h2><button id="closeGuide" aria-label="Close guide">✕</button></div><ol><li>Pick an environment and a planner.</li><li>Click <b>Run mission</b> to follow the planned route. Pause or reset at any time.</li><li>Click <b>Block route ahead</b> while running to see obstacle-triggered replanning.</li><li>Use the editor to draw walls, erase cells, or move start and goal.</li><li>Click <b>Compare planners</b>, then export results for your portfolio.</li></ol><h3>Keyboard controls</h3><p><b>Space</b>: run/pause · <b>R</b>: reset · <b>1–4</b>: edit tools. Focus the map, use arrow keys to select a cell, then <b>Enter</b> to apply the tool.</p><h3>What this model assumes</h3><p>Ground-truth position and a fully known map. Obstacles you insert update the map immediately. LiDAR is visualised independently; it does not build the map. The robot follows grid waypoints with heading control and a collision guard.</p><p>Exported telemetry uses simulation time; faster playback does not change physics. See README.md for equations, limitations and a demo script.</p></dialog>
+<dialog id="guide"><div class="dialog-head"><h2>Your first mission</h2><button id="closeGuide" aria-label="Close guide">✕</button></div><ol><li>Pick an environment and a planner.</li><li>Click <b>Run mission</b> to follow the planned route. Pause or reset at any time.</li><li>Click <b>Block route ahead</b> while running to see obstacle-triggered replanning.</li><li>Use the editor to draw walls, erase cells, or move start and goal.</li><li>Click <b>Compare planners</b>, then export results for your portfolio.</li></ol><h3>Keyboard controls</h3><p><b>Space</b>: run/pause · <b>R</b>: reset · <b>1–4</b>: edit tools. Focus the map, use arrow keys to select a cell, then <b>Enter</b> to apply the tool.</p><h3>What this model assumes</h3><p>Ground-truth position and a fully known map. Obstacles you insert update the map immediately. LiDAR is visualised independently; it does not build the map. Choose heading-based waypoint control or pure pursuit with a forward collision check and waypoint fallback. Footprint inflation excludes unsafe robot-centre cells; transition checks validate graph edges.</p><p>Exported telemetry uses simulation time. Controller comparisons use the same fixed physics timestep. See README.md for equations, limitations and a demo script.</p></dialog>
 </body>
 </html>

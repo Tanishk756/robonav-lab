@@ -66,3 +66,33 @@ test('map import rejects malformed maps',()=>{
   assert.throws(()=>R.validateMap({w:32,h:24,cells:[]}));
   const m=R.makeMap('empty');m.start={x:NaN,y:2};assert.throws(()=>R.validateMap(m));
 });
+test('inflation closes a passage too narrow for the robot and preserves sensor map',()=>{
+  const m=R.makeMap('empty');for(let y=1;y<23;y++)if(y!==12)m.cells[y*m.w+16]=1;
+  const before=m.cells.slice();
+  const small=R.inflateMap(m,.36),large=R.inflateMap(m,.72);
+  assert.ok(R.plan(small,m.start,m.goal,'astar',.36,m).path.length>0);
+  assert.equal(R.plan(large,m.start,m.goal,'astar',.72,m).path.length,0);
+  assert.deepEqual(m.cells,before);
+});
+test('planning transitions respect circular footprint clearance',()=>{
+  const m=R.makeMap('warehouse'),clearance=.72,grid=R.inflateMap(m,clearance);
+  const route=R.plan(grid,m.start,m.goal,'astar',clearance,m).path;assert.ok(route.length>0);
+  for(let i=1;i<route.length;i++)assert.ok(R.segmentClear(m,R.center(route[i-1]),R.center(route[i]),clearance));
+});
+test('pure pursuit completes all presets for both planners at all speed settings',()=>{
+  for(const name of ['empty','warehouse','corridors','clutter'])for(const planner of ['astar','dijkstra'])for(const speed of [.4,1.6,3]){
+    const sim=new R.Simulation(R.makeMap(name),planner,speed,{controller:'pursuit'});sim.start();
+    for(let i=0;i<36000&&sim.status==='running';i++){sim.step(1/60);assert.equal(R.collides(sim.map,sim.pose.x,sim.pose.y,sim.clearance),false);}
+    assert.equal(sim.status,'arrived',`${name} ${planner} ${speed}`);
+  }
+});
+test('pure pursuit handles an inserted obstacle and repeated experiments are deterministic',()=>{
+  const sim=new R.Simulation(R.makeMap('empty'),'astar',1.6,{controller:'pursuit'});sim.start();
+  for(let i=0;i<180;i++)sim.step(1/60);
+  const p=sim.path[sim.target+4];sim.map.cells[p.y*sim.map.w+p.x]=1;sim.replan();
+  for(let i=0;i<36000&&sim.status==='running';i++)sim.step(1/60);assert.equal(sim.status,'arrived');assert.equal(sim.replans,1);
+  const a=R.benchmarkMission(R.makeMap('warehouse'),'astar',1.6,{controller:'pursuit'}),b=R.benchmarkMission(R.makeMap('warehouse'),'astar',1.6,{controller:'pursuit'});assert.deepEqual(a,b);
+});
+test('invalid robot settings are rejected',()=>{
+  for(const options of [{radius:NaN},{radius:2},{margin:-1},{lookahead:Infinity},{controller:'unknown'}])assert.throws(()=>R.config(options));
+});
