@@ -1,186 +1,100 @@
 # RoboNav Lab
 
-### Tanishk Singhal · Robotics & Automation
+### Tanishk Singhal - Robotics & Automation
 
-An interactive mobile robotics workbench for studying the relationship between **path planning, robot geometry, and motion control**. Change the map, adjust the robot's footprint, compare planners and controllers, and inspect the resulting trajectory and telemetry.
+**v1.3** - An offline mobile robotics workbench connecting global planning, robot geometry, LiDAR mapping and reactive motion control. JavaScript/HTML Canvas, no runtime packages or backend, MIT licensed.
 
-**v1.2** · JavaScript / HTML Canvas · No runtime dependencies · Offline-capable · MIT
+[Source](https://github.com/Tanishk756/robonav-lab) | [Validation](docs/VALIDATION.md) | [Release notes](CHANGELOG.md) | [Roadmap](docs/IMPLEMENTATION-PLAN.md)
 
-[Source code](https://github.com/Tanishk756/robonav-lab) · [Technical validation](docs/VALIDATION.md) · [Release notes](CHANGELOG.md)
+## Run
 
-## Why this project
+Open **index.html** in Edge, Chrome or Firefox after extracting the entire repository. Keep index.html, style.css, navigation.js, core.js, app.js and navigation-worker.js together. No installation or internet is needed to use it. Node.js 20+ is needed only for development checks.
 
-A valid path on a grid is only one part of navigation. A physical footprint must fit through the route, and a controller must turn that route into wheel commands. RoboNav Lab makes these layers visible and measurable in a lightweight browser application.
+A static server enables worker-based experiments when local-file workers are restricted. With Python installed, run `python -m http.server 8000` and open `http://localhost:8000`. Direct file opening remains supported through a synchronous comparison fallback. Large fallback comparisons can temporarily pause the page.
 
-The project focuses on reproducible experiments, explicit assumptions, and failure cases. It is an educational simulator, not a physical-robot deployment.
+## Try the new navigation release
 
-## Run locally
+1. Choose **Warehouse aisles** and A*.
+2. Expand **Robot configuration**, choose **Dynamic window (DWA)** and **LiDAR observed map**.
+3. Keep **Explore: assume free** selected. Toggle **Observed map / unknown cells** to see what the robot actually knows.
+4. Run a mission. The scan reveals walls, the observed map changes and the route replans as needed.
+5. Enable **Moving grid carts** and run again. Pink outlines mark carts; the observed view only marks carts at observed occupied locations.
+6. Compare all three controllers, inspect clearance/replanning/recovery metrics, and export your map/settings and results.
 
-Download or clone the repository, then open **index.html** in Edge, Chrome, or Firefox. Keep `app.js`, `core.js`, and `style.css` beside it. Extract ZIP downloads before opening the HTML.
+Configuration changes reset the mission. **Conservative: block unknown** can immediately make a distant unobserved goal unreachable; it is not an autonomous exploration strategy. The mission explanation panel states why navigation stopped.
 
-```powershell
-git clone https://github.com/Tanishk756/robonav-lab.git
-cd robonav-lab
+## Planners, environments and controllers
+
+| Planner | Objective |
+| --- | --- |
+| A* | Minimum weighted graph cost using an octile heuristic |
+| Dijkstra | Minimum weighted graph cost without a heuristic |
+| Weighted A* | Cost + 1.8 times heuristic; no optimality guarantee here |
+| Greedy best-first | Prioritizes heuristic distance; approximate |
+| Breadth-first | Fewest grid edges, not minimum metres or proximity cost |
+
+All five use an eight-connected graph, prevent diagonal corner cutting and check hard clearance along each edge. Compare planners runs one warm-up and 25 measured searches per planner on a snapshot of the current navigation map.
+
+Eight deterministic environments: Warehouse aisles, Alternating corridors, Seeded clutter (731), Open floor, Office suites, Slalom barriers, Four rooms and Loading dock. The fixed grid is 32 x 24 cells at 1 m per cell.
+
+| Controller | Behavior |
+| --- | --- |
+| Waypoints | Heading-based waypoint tracking; original baseline |
+| Guarded pursuit | Lookahead tracking with unsafe-command fallback |
+| Dynamic window (DWA) | Samples 45 velocity pairs per step within linear/angular acceleration windows; scores safe rollouts for target progress, heading, speed and clearance |
+
+DWA limits normal linear acceleration to 1 m/s2 and angular acceleration to 3 rad/s2, with angular speed capped at 2.5 rad/s. Rollouts check current navigation occupancy over 1.2 s plus a speed-dependent stopping-distance allowance. No safe candidate produces an emergency stop, which can override acceleration limits. The other two controllers retain their original instantaneous command model. DWA does not predict future cart motion.
+
+## Mapping and obstacle model
+
+**Fully known world** uses current physical occupancy. **LiDAR observed map** starts unknown and updates only from 72 ideal rays, maximum range 8 m, at 5 Hz. Ground-truth pose is used; this is occupancy mapping, not localization or SLAM.
+
+The mapper records seen cells and bounded log odds. Each scan adds +1.2 for occupied endpoints and -1.5 for observed free cells, clamped to [-4, 4]. Occupancy threshold is 0.5. Hit evidence wins within a scan. Repeated free observations clear stale occupancy; unseen cells do not decay automatically. Unknown cells are either assumed free or blocked, according to the selected policy. The mapper never reads hidden obstacle cells to infer occupancy.
+
+Moving obstacles are deterministic **grid carts**, not continuous pedestrians. Up to two one-cell carts follow free horizontal tracks, moving one cell per simulation second. They reverse at track ends and new walls, and yield when the next cell would touch the robot safety envelope. LiDAR sees their physical occupied cells. Base static occupancy is preserved. These deliberately cooperative discrete obstacles are a controlled educational scenario, not a general moving-crowd model.
+
+## Geometry, costmap and physics
+
+Robot hard clearance is `radius + margin`. Defaults: radius 0.24 m, margin 0.12 m, pursuit/lookahead 0.9 m. Amber obstacle halos and the teal robot safety ring show the same constraint; it is applied once.
+
+Straight-edge validation uses exact segment-to-occupied-rectangle distance, including the map exterior. Tangency counts as collision, with a 1e-9 m conservative edge tolerance. Constant-command curved steps are checked using an enclosing chord envelope expanded by the arc sagitta. The final physical-world guard can stop a command even if the sensor-derived map missed an obstacle; this guard is simulator protection, not an extra observation supplied to the planner.
+
+Soft proximity penalties are independent of hard clearance. Defaults: band 1.5 m, weight 2, exponent 2. At distance d from physical occupied rectangles in the selected navigation map:
+
+`penalty = clamp(1 - (d - clearance) / band, 0, 1) ** exponent`
+
+An edge costs `length * (1 + weight * averageEndpointPenalty)`. Purple cells display soft cost. Zero band or weight restores distance-only cost. A* and Dijkstra optimize weighted graph cost; route length is reported separately. The costmap is built during reset/planning, not rendering.
+
+The circular robot uses exact constant-command differential-drive integration, wheel track 0.42 m, fixed UI timestep 1/60 s. X increases right and Y down; positive heading is clockwise on screen. This is not the ROS world-frame convention.
+
+## States, metrics and exports
+
+Navigation states include idle, navigating, replanning, recovering, paused, unreachable, failed and arrived. Replanning is debounced by at least 0.5 simulation seconds. A stalled local command triggers bounded retry logic; changing-occupancy route failures can wait and retry. Persistent stalls fail with a reason; every mission has a 600 simulation-second limit. Recovery currently waits and replans; it does not reverse or perform a separate exploratory maneuver. Replanning is often brief enough that its state is not visible between display updates.
+
+Live metrics include geometric path length, weighted cost, search/build time, tracking RMSE, distance, observed fraction, minimum physical body clearance, integrated absolute angular motion, peak linear acceleration, replans and recovery attempts. Clearance is distance to physical occupancy minus body radius; it is distinct from the safety margin. Comparisons report status, and CSV exports include diagnostic metrics and failure reasons. A benchmark success rate is computed from arrived rows divided by total rows; it is not a safety guarantee.
+
+**Map export** saves the base environment and all experiment settings with settingsVersion 3; it does not save a mid-mission pose or mapper state. Legacy versions 1/2 load with fully known/static defaults for the new settings. Exported JSON provides a reusable experiment preset. Planner comparisons use the current navigation-map snapshot; controller comparisons restart each controller from the same base scene/settings. Runtime manual edits during a comparison are excluded; configured moving carts are included.
+
+Planner/controller comparisons run in a Web Worker when available. Global replans and per-step local control remain synchronous on the fixed small grid. Stale worker responses are discarded after settings/map changes. The offline fallback is tested.
+
+Controls: Run/Pause/Resume, Reset, Plan route, wall/erase/start/goal editing, Block route ahead, layer toggles, map JSON import/export, CSV exports and PNG snapshot. Space controls transport, R resets, 1-4 selects editing tools outside form fields. Focus the canvas and use arrows/Enter for keyboard editing. Physics pauses during pointer drawing. Edits are kept only in memory until exported.
+
+## Development and validation
+
 ```
-
-No installation, API keys, backend, internet connection, Python, Node.js, or GPU is needed to use the app. If local scripts are restricted by your browser policy, use an approved static server. With Python already installed: `python -m http.server 8000`, then open `http://localhost:8000`.
-
-## Capabilities
-
-| Layer | Implementation |
-|---|---|
-| Environment | Editable 32 × 24 m occupancy grid; eight deterministic maps |
-| Planning | A*, Dijkstra, Weighted A*, Greedy best-first, BFS; 8-connected movement |
-| Robot geometry | Configurable circular radius and clearance margin; configuration-space occupancy |
-| Transition safety | Segment clearance checks between graph nodes; no diagonal corner cutting |
-| Control | Heading-based waypoint follower or guarded pure pursuit |
-| Motion | Exact differential-drive integration at a fixed 1/60 s timestep |
-| Sensing | 72 ideal LiDAR rays, 360° coverage, 8 m maximum range |
-| Runtime edits | Insert obstacles during a mission and request a new route |
-| Evaluation | Planner comparison, full-mission controller comparison, tracking RMSE |
-| Exports | Map + settings JSON, planner/controller/telemetry CSVs, navigation PNG |
-
-## Try these experiments
-
-1. **Search efficiency:** on Warehouse, click **Compare planners**. Compare weighted path cost and expanded cells; only A* and Dijkstra guarantee optimal cost. Timings are medians of 25 measured searches and vary by machine.
-2. **Control trade-off:** click **Compare controllers**. Compare simulation time, driven distance and tracking RMSE under identical settings. A smoother/faster route may have higher path error.
-3. **Footprint constraints:** expand **Robot configuration**, increase the robot radius, and inspect the orange excluded cells. A narrow opening can become unreachable.
-4. **Online replanning:** run a mission and click **Block route ahead**. The map and route update; LiDAR observes the inserted obstacle.
-5. **Failure recovery:** draw a complete wall across the environment. Observe the stopped/no-route state, erase an opening, and plan again.
-
-Configuration changes reset the current mission. Save your map before closing: edits are kept in memory. Exported maps include robot/controller settings, speed and planner; legacy v1.0 maps still import with default settings.
-
-## Controls
-
-- **Run / Pause / Resume:** control execution. **Reset:** return to start without clearing walls.
-- **Plan route:** stop and replan from the current robot cell.
-- **Wall / Erase:** click or drag. **Start / Goal:** move endpoints while stopped.
-- **Robot configuration:** radius 0.15–0.70 m, margin 0–0.30 m, pursuit lookahead 0.4–1.6 m.
-- **Layers:** LiDAR, explored nodes, hard footprint inflation, soft proximity costmap and driven trajectory.
-- **Keyboard:** Space runs/pauses, R resets, 1–4 select editing tools outside form controls. Focus the canvas, use arrows to select a cell, and press Enter to edit it.
-
-The outer boundary and mission endpoints are protected from wall painting. Cells touching the current robot plus margin are protected. Physics pauses during pointer drawing and replans after release.
-
-## Technical model
-
-### Coordinates and planning
-
-One cell is one metre. X increases right, Y increases down, and positive heading rotates clockwise on screen. This is a screen convention, not the ROS world-frame convention.
-
-Orthogonal edges have length 1 m; diagonal edges have length √2 m. A* uses:
-
-`h = max(dx, dy) + (√2 − 1) × min(dx, dy)`
-
-Dijkstra uses zero heuristic. Both search the same graph. Optimality refers to this graph, not the continuous-space shortest path. Equal-cost ties can produce different trajectories.
-
-### Footprint and clearance
-
-The planning clearance is `radius + margin`. A cell centre is excluded if that circular footprint intersects an obstacle rectangle. Each candidate graph edge is also sampled at at most 0.05 m intervals with an additional 0.025 m numerical allowance. This is conservative sampled edge validation; it is not an exact general polygonal configuration-space solver.
-
-Amber halos show continuous obstacle inflation by radius plus margin, including walls and runtime edits; shaded amber cells show excluded robot-centre positions. The teal robot safety ring shows the same radius plus margin. The layer toggle controls both displays. These visualize the same clearance constraint, which is applied once in planning and motion guards. LiDAR continues to see the original physical obstacle map. At small radii, wheel/direction symbols are visual aids rather than a separate collision footprint.
-
-See [the implementation plan](docs/IMPLEMENTATION-PLAN.md) for the proposed costmap, mapping, local planning, localization, and validation stages.
-
-### Graded inflation costmap
-
-Robot configuration exposes a soft band (default 1.5 m), proximity weight (2), and decay exponent (2). These do not change the hard `radius + margin` clearance. For distance `d` from a free cell centre to the nearest physical obstacle rectangle or map exterior, the soft penalty is:
-
-`penalty = clamp(1 - (d - clearance) / softBand, 0, 1) ** costDecay`
-
-The penalty is zero beyond the band. Higher exponents concentrate the penalty near the hard envelope. Each graph edge costs `length * (1 + costWeight * (penaltyA + penaltyB) / 2)`. A* and Dijkstra minimize this weighted cost; the octile distance remains an admissible A* heuristic. The soft layer is a cell-centre proximity preference, not a continuous safety guarantee. Hard segment and motion checks still enforce clearance independently.
-
-Purple shading represents increasing proximity penalty and has its own layer toggle. A zero weight or zero band restores distance-only planning. The planned-route metric and CSV `path_m` report geometric length; weighted cost is reported separately. Costmap build time is measured separately from search time. Derived layers rebuild on planning/map/configuration changes, outside the render loop.
-
-Map exports include `settingsVersion: 2` and all three cost settings. Older maps remain accepted; missing cost fields use the documented defaults. Planner/controller CSVs and `benchmark.cjs` include the cost settings. Unknown settings versions are rejected.
-
-### Differential-drive integration
-
-For wheel linear velocities `vL`, `vR` and wheel track `b = 0.42 m`:
-
-`v = (vR + vL) / 2` and `ω = (vR − vL) / b`.
-
-Each step integrates the exact constant-command circular arc, or its straight-line limit. The time step is fixed at 1/60 s. A slow browser may run slower than wall-clock time rather than taking larger physics steps.
-
-### Controllers
-
-**Waypoints:** bounded proportional heading control; forward velocity reduces near cell-centre waypoints and becomes zero on sharp turns.
-
-**Guarded pure pursuit:** projects the pose onto upcoming path segments, advances a lookahead distance along the path, and commands `ω = 2v sin(α) / L`, where L is the actual distance to the target. Forward speed reduces with curvature and near the goal. Large heading errors trigger rotation before translation. A 0.4 s constant-command forward check rejects unsafe pursuit arcs and temporarily falls back to waypoint heading control. The guard-fallback counter records entries into that fallback mode. A purple marker shows the current lookahead target.
-
-This is a hybrid pursuit controller with conservative checks, not a formal collision-avoidance guarantee. The final clearance guard checks every candidate motion step and stops on a violation.
-
-### Measurements
-
-- **Planning time:** latest search only; configuration-space construction is excluded. Comparison table uses one warm-up and 25 measured searches per algorithm.
-- **Planned route:** geometric length of the latest selected route in metres. It changes after a replan.
-- **Driven distance:** sum of integrated displacement.
-- **Tracking RMSE:** shortest distance to the current path polyline at every physics step. Samples before a replan remain in the mission total.
-- **Controller comparison:** independent runs from start, with a 600 simulation-second limit and no runtime insertions. It does not alter the live mission.
-- **LiDAR:** exact grid-boundary DDA raycasting. Nearest distance is measured from sensor centre, not robot surface.
-
-Telemetry is sampled approximately every 0.1 simulation seconds. Export the map alongside CSV results so an edited environment can be reproduced.
-
-## Tests and benchmarks
-
-Node.js 20+ is needed only for development checks; no npm packages are required.
-
-```powershell
-node --test tests/core.test.cjs tests/ui.test.cjs
+node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs
 node benchmark.cjs
-node benchmark.cjs > my-results.csv
+node benchmark-navigation.cjs
 ```
 
-The release includes **30 passing automated tests**. Checks include shortest paths, inaccessible endpoints, corner constraints, raycasting, drive integration, narrow-passage footprint rejection, control completion, replanning, deterministic benchmarks and UI-adapter interactions.
+The regression suite has **43 passing tests**. The standard benchmark covers eight environments x five planners x three controllers: **120 missions**. [sample-results.csv](sample-results.csv) and [planner-results.csv](docs/planner-results.csv) are identical saved outputs. A separate **12-mission** [navigation benchmark](docs/navigation-results.csv) covers three environments, known/sensor maps and static/moving carts with A* + DWA. All saved missions arrived. Timing is machine-dependent.
 
-The pursuit test covers both planners on four maps at 0.4, 1.6 and 3.0 m/s. These are finite scenario tests, not a guarantee for every custom map or configuration. See [validation](docs/VALIDATION.md) for scope and limitations. `sample-results.csv` contains actual benchmark output from this release.
+Optional real-browser integration: `python tests/browser_smoke.py` requires Python, the development-only websockets package and installed Edge; set ROBONAV_BROWSER for another compatible Chromium executable. It verifies actual selectors, worker comparisons with a responsive viewport, sensor/DWA/cart controls, and captures desktop/mobile screenshots. Set ROBONAV_FILE_TEST=1 to test direct offline opening. See [validation](docs/VALIDATION.md) for exact test scope and [file audit](docs/FILE-AUDIT.md).
 
-## Structure
+## Limits and next work
 
-```text
-index.html           Application and controls
-style.css            Responsive workbench styling
-core.js              Planning, geometry, sensing, control and simulation
-app.js               Canvas rendering, interactions, comparisons and exports
-benchmark.cjs        Repeatable planner/controller benchmark
-tests/               Engine and DOM-adapter checks
-docs/                Design, validation and portfolio notes
-```
+No encoder noise, pose estimation, SLAM localization, motor/slip dynamics, configurable resolution, polygonal footprints, ROS connection or hardware validation. Sensor ranges are ideal. Moving carts yield and move discretely; there is no prediction of independently moving humans. Custom maps and every parameter combination are not exhaustively tested. Long missions retain growing telemetry arrays. The roadmap separates delivered navigation work from localization and map/footprint generalization.
 
-## Assumptions and limits
+GitHub Pages uses the included Actions workflow; choose GitHub Actions as the Pages source. Syntax checks, all tests, and both benchmarks gate deployment. Reload after updates and verify the **v1.3** badge.
 
-Pose is ground truth and the occupancy map is fully known. LiDAR is visualised independently; it does not perform SLAM or discover obstacles for planning. Runtime insertions update the known map immediately. There is no moving-obstacle prediction, motor dynamics, acceleration limiting, friction, slip, localisation noise, ROS interface, or real-robot validation. Robot geometry is circular and the grid resolution is fixed.
-
-A headless Edge smoke check verifies native planner options, all environment/planner selections and basic controls, with a rendered screenshot inspected. Cross-browser, interactive mobile and file-dialog behavior still need manual QA; automated adapter tests use a DOM double. Long sessions retain growing trajectory and telemetry arrays.
-
-## Publish with GitHub Pages
-
-The repository includes a GitHub Actions Pages workflow. In repository Settings > Pages, select **GitHub Actions** as the source. Pushes to main run syntax checks, all tests and the 80-mission benchmark before deployment. A failed check prevents publication. The workflow uploads the root static site with relative asset paths; no backend is required.
-
-After an update, reload the page. The release badge should say **v1.2**, and the Path planner dropdown should contain five entries. If an older page is cached, use Ctrl+F5 or reopen the Desktop index.html. The missing-options issue in the previous build was an HTML defect, corrected in v1.2.
-
-## Maintainer
-
-**Tanishk Singhal** — Robotics & Automation
-
-[GitHub profile](https://github.com/Tanishk756) · [Report an issue](https://github.com/Tanishk756/robonav-lab/issues)
-
-MIT licensed. Copyright © 2026 Tanishk Singhal.
-
-
-## Additional planners and environments
-
-There are now five selectable planners. All use the same eight-connected graph, hard footprint clearance, diagonal corner constraints, and weighted-cost reporting.
-
-| Planner | Search priority | Objective / limitation |
-| --- | --- | --- |
-| A* | accumulated cost + octile distance | Minimum weighted graph cost |
-| Dijkstra | accumulated cost | Minimum weighted graph cost |
-| Weighted A* | accumulated cost + 1.8 times octile distance | More goal-directed search; no optimality guarantee in this implementation |
-| Greedy best-first | octile distance only | Goal-directed exploration; ignores accumulated cost when prioritizing expansion |
-| Breadth-first | number of graph edges | Fewest grid steps; does not minimize metres or proximity cost |
-
-Compare planners runs all five with one warm-up and 25 measured searches each. Route length and weighted cost remain separate so approximate planners can be compared fairly. These searches run synchronously on the fixed small grid; larger maps will require worker-based execution.
-
-The original Warehouse, Alternating corridors, Seeded clutter, and Open floor maps are joined by Office suites (walls, doors, desks), Slalom barriers (alternating long barriers), Four rooms (cross walls with doorways), and Loading dock (cargo blocks and bays). Every preset is deterministic and shares the existing protected start/goal locations. Narrow doorways can correctly become unreachable when the hard robot safety radius is increased.
-
-The development suite has 30 tests. The expanded benchmark covers all eight environments, five planners, and both controllers: 80 default-configuration missions. See [sample-results.csv](sample-results.csv) and its matching [documentation copy](docs/planner-results.csv) for a local benchmark snapshot; timings depend on the machine.
+MIT licensed. Copyright 2026 Tanishk Singhal. [GitHub](https://github.com/Tanishk756) | [Issues](https://github.com/Tanishk756/robonav-lab/issues)

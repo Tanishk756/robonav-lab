@@ -37,10 +37,13 @@ jobs:
           node-version: '24'
       - name: Validate application
         run: |
+          node --check navigation.js
+          node --check navigation-worker.js
           node --check core.js
           node --check app.js
-          node --test tests/core.test.cjs tests/ui.test.cjs
+          node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs
           node benchmark.cjs > /tmp/robonav-benchmark.csv
+          node benchmark-navigation.cjs > /tmp/robonav-navigation.csv
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

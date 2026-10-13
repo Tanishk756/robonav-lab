@@ -1,19 +1,28 @@
-ROBONAV LAB v1.2 - TANISHK SINGHAL
+ROBONAV LAB v1.3 - TANISHK SINGHAL
 
-1. Extract the whole ZIP; keep index.html, style.css, core.js and app.js together.
-2. Open index.html in Edge, Chrome or Firefox. No install or internet required.
-3. Verify the v1.2 badge and five entries in Path planner.
-4. Choose one of eight environments and one of five planners.
-5. Run mission, or Compare planners to benchmark all five.
-6. Expand Robot configuration for radius, hard safety margin, soft cost band,
-   proximity weight, decay and pursuit controller settings.
-7. Toggle amber obstacle/robot inflation and purple soft cost separately.
-8. Compare controllers, insert an obstacle and export map/settings or results.
+Extract the full repository and open index.html. Keep all six runtime files:
+index.html, style.css, navigation.js, core.js, app.js, navigation-worker.js.
+No backend, install, internet or API keys are needed to use it.
 
-A* and Dijkstra minimize weighted cost. Weighted A* and greedy are approximate.
-BFS minimizes grid steps, not metres or proximity cost.
-Save your map before closing. Edits are stored only in memory.
-If an old page is open, reload with Ctrl+F5 or reopen Desktop/robonav-lab/index.html.
+Verify v1.3, five planners, eight environments and three controllers.
+For the new demo, expand Robot configuration:
+- Controller: Dynamic window (DWA)
+- Navigation map: LiDAR observed map
+- Unknown cells: Explore: assume free
+- Optional: enable Moving grid carts
+Toggle Observed map / unknown cells, then Run mission.
+
+The robot discovers walls through scans and replans. The mission panel explains
+stops and shows observed fraction, clearance, replans and recovery attempts.
+Conservative unknown mode may reject distant goals before exploration.
+
+Compare planners/controllers and export JSON to save a reusable experiment.
+Map export saves the initial scene/settings, not a paused mission snapshot.
+Carts are deterministic grid obstacles that yield to the robot, not pedestrians.
+Ground-truth pose is used; this release maps occupancy but does not localize.
+
+If file workers are restricted, comparisons use a synchronous fallback.
+For background comparisons, serve with python -m http.server 8000 if Python
+is installed, then open http://localhost:8000. Offline file opening still works.
 
 See README.md, docs/VALIDATION.md and docs/IMPLEMENTATION-PLAN.md.
-Node.js 20+ is needed only for development tests, not for using the app.

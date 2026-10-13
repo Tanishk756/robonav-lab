@@ -2,7 +2,7 @@
 // and rendering calls; it is deliberately NOT a substitute for browser QA.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
-function boot(){
+function boot(extra={}){
   const handlers={},raf=[],downloads=[],blobs=[],nodes=new Map();
   const drawing=new Proxy({}, {get:(_,k)=>k==='measureText'?()=>({width:10}):()=>{},set:()=>true});
   class Element{
@@ -15,10 +15,11 @@ function boot(){
   for(const match of html.matchAll(/id="([^"]+)"/g))nodes.set(match[1],new Element(match[1]));
   for(const match of html.matchAll(/<select id="([^"]+)">([\s\S]*?)<\/select>/g)){nodes.get(match[1]).options=[...match[2].matchAll(/<option value="([^"]+)">/g)].map(o=>({value:o[1]}));}
   nodes.get('algorithm').value='astar';nodes.get('speed').value='1.6';nodes.get('scenario').value='warehouse';
-  for(const [id,value] of Object.entries({controller:'waypoint',radius:'0.24',margin:'0.12',lookahead:'0.9',softBand:'1.5',costWeight:'2',costDecay:'2'}))nodes.get(id).value=value;
+  for(const [id,value] of Object.entries({controller:'waypoint',radius:'0.24',margin:'0.12',lookahead:'0.9',softBand:'1.5',costWeight:'2',costDecay:'2',navigation:'known',unknownPolicy:'optimistic'}))nodes.get(id).value=value;
+  nodes.get('movingObstacles').checked=false;nodes.get('showObserved').checked=false;
   const buttons=['wall','erase','start','goal'].map(t=>{const b=new Element();b.dataset.tool=t;return b;});
   const document={getElementById:id=>{assert.ok(nodes.has(id),'unknown DOM id '+id);return nodes.get(id);},querySelectorAll:()=>buttons,createElement:()=>new Element(),createTextNode:t=>t,addEventListener:(k,v)=>handlers[k]=v};
-  const context={window:{RoboNav:require('../core.js')},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:blob=>{blobs.push(blob);return ''},revokeObjectURL(){}},console};
+  const context={window:{RoboNav:require('../core.js')},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:blob=>{blobs.push(blob);return ''},revokeObjectURL(){}},console,...extra};
   vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8'),context);
   return {nodes,raf,buttons,downloads,handlers,blobs};
 }
@@ -51,7 +52,7 @@ test('invalid map import gives a readable error and preserves the app',async()=>
 });
 test('robot configuration resets mission and controller comparison exports results',()=>{
   const {nodes:n,downloads}=boot();n.get('controller').value='pursuit';n.get('controller').onchange();
-  n.get('compareControllers').click();assert.equal(n.get('controllerResults').children.length,2);
+  n.get('compareControllers').click();assert.equal(n.get('controllerResults').children.length,3);
   n.get('exportControllers').click();assert.ok(downloads.includes('robonav-controller-comparison.csv'));
   n.get('radius').value='0.6';n.get('radius').onchange();assert.equal(n.get('exportControllers').disabled,true);
   assert.match(n.get('inflationValue').textContent,/Robot safety radius: 0\.72 m/);
@@ -77,7 +78,7 @@ test('costmap controls, weighted comparison and versioned settings round trip',a
   n.get('compare').click();assert.equal(n.get('results').children[0].children.length,6);
   n.get('exportResults').click();const csv=await blobs.at(-1).text();assert.match(csv,/weighted_cost/);assert.match(csv,/costmap_build_ms/);
   n.get('saveMap').click();const saved=JSON.parse(await blobs.at(-1).text());
-  assert.equal(saved.settingsVersion,2);assert.equal(saved.robot.costWeight,8);assert.equal(saved.robot.softBand,3);
+  assert.equal(saved.settingsVersion,3);assert.equal(saved.robot.costWeight,8);assert.equal(saved.robot.softBand,3);
   n.get('costWeight').value='0';n.get('costWeight').onchange();
   await n.get('mapFile').onchange({target:{files:[{size:5000,text:async()=>JSON.stringify(saved)}],value:'saved.json'}});
   assert.equal(n.get('costWeight').value,8);assert.equal(n.get('softBand').value,3);assert.equal(n.get('costDecay').value,1);
@@ -100,10 +101,42 @@ test('new planner selections and environments work and import/export preserves p
 
 test('real HTML select options exactly match engine planner and environment catalogs',()=>{
   const R=require('../core.js');
-  for(const [id,catalog] of [['algorithm',R.PLANNERS],['scenario',R.ENVIRONMENTS]]){
+  for(const [id,catalog] of [['algorithm',R.PLANNERS],['scenario',R.ENVIRONMENTS],['controller',R.CONTROLLERS]]){
     const select=html.match(new RegExp('<select id="'+id+'">([\\s\\S]*?)</select>'));
     assert.ok(select,'missing '+id);const values=[...select[1].matchAll(/<option value="([^"]+)">/g)].map(m=>m[1]);
     assert.deepEqual(values,Object.keys(catalog));assert.equal(new Set(values).size,values.length);
   }
   const {nodes:n}=boot();n.get('algorithm').value='missing';assert.equal(n.get('algorithm').value,'');
+});
+
+
+test('sensor mode, moving carts and DWA settings survive version-three export/import',async()=>{
+  const {nodes:n,blobs}=boot();n.get('navigation').value='sensor';n.get('navigation').onchange();
+  n.get('controller').value='dwa';n.get('controller').onchange();n.get('movingObstacles').checked=true;n.get('movingObstacles').onchange();
+  n.get('saveMap').click();const saved=JSON.parse(await blobs.at(-1).text());assert.equal(saved.settingsVersion,3);
+  assert.equal(saved.robot.navigation,'sensor');assert.equal(saved.robot.controller,'dwa');assert.equal(saved.robot.movingObstacles,true);
+  await n.get('mapFile').onchange({target:{files:[{size:5000,text:async()=>JSON.stringify(saved)}],value:'sensor.json'}});
+  assert.equal(n.get('navigation').value,'sensor');assert.equal(n.get('controller').value,'dwa');assert.equal(n.get('movingObstacles').checked,true);
+});
+
+
+test('worker comparisons stay asynchronous and discard stale responses',()=>{
+  let worker;
+  class FakeWorker{constructor(){worker=this;this.messages=[];}postMessage(data){this.messages.push(data);}terminate(){}}
+  const {nodes:n}=boot({Worker:FakeWorker});n.get('compare').click();assert.equal(n.get('compare').disabled,true);
+  const stale=worker.messages[0];n.get('costWeight').value='4';n.get('costWeight').onchange();
+  worker.onmessage({data:{id:stale.id,result:require('../core.js').comparePlanners(stale.map,stale.settings)}});
+  assert.equal(n.get('exportResults').disabled,true);assert.equal(n.get('compare').disabled,false);
+  n.get('compare').click();const current=worker.messages.at(-1);
+  worker.onmessage({data:{id:current.id,result:require('../core.js').comparePlanners(current.map,current.settings)}});
+  assert.equal(n.get('results').children.length,5);assert.equal(n.get('exportResults').disabled,false);
+});
+
+
+test('worker failure falls back to the same comparison engine',()=>{
+  let worker;
+  class FailingWorker{constructor(){worker=this;}postMessage(){}terminate(){}}
+  const {nodes:n}=boot({Worker:FailingWorker});n.get('compare').click();worker.onerror();
+  assert.equal(n.get('compare').disabled,false);assert.equal(n.get('results').children.length,5);
+  assert.equal(n.get('exportResults').disabled,false);
 });

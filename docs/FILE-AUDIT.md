@@ -1,34 +1,41 @@
-# File audit - RoboNav Lab v1.2
+# File audit - RoboNav Lab v1.3
 
-Reviewed 2026-10-13. All 24 project files were inspected; Git internal files are excluded.
+Reviewed 2026-10-13. All 31 project files inspected; Git internals and ignored bytecode caches excluded.
 
-Root cause: the engine and comparisons contained five planners, but the HTML select had only A* and Dijkstra. A prior text substitution failed to match the markup. The adapter test double accepted arbitrary select values, concealing the mismatch. This was corrected in the markup and the test double, with an explicit catalog-parity regression test and a real Edge check.
+The previous missing-options defect remains covered by real markup/engine catalog parity tests and native browser checks. This release adds mapping and local navigation without claiming localization, general crowd prediction or hardware readiness.
 
 | File | Review result |
 | --- | --- |
-| `.github/workflows/static.yml` | Added Node syntax/test/benchmark gates before the existing Pages deployment. |
-| `.gitignore` | Read; existing dependency/log/secret exclusions retained. |
-| `.nojekyll` | Verified static-host marker retained. |
-| `CHANGELOG.md` | Added v1.2 release notes and dropdown correction. |
-| `LICENSE` | Read; preserved MIT terms and attribution unchanged. |
-| `README.md` | Updated release, counts, planner guarantees, layers, actual workflow and browser validation scope. |
-| `START-HERE.txt` | Replaced stale startup instructions with v1.2/five-planner/eight-environment guidance. |
-| `app.js` | Reviewed all controls, five-planner comparisons, import validation and CSV exports; retained. |
-| `benchmark.cjs` | Reviewed catalog-driven 80-mission matrix and expanded cost fields; retained and rerun. |
-| `core.js` | Reviewed five searches, eight map generators, costmap, clearance, sensing and controller code; retained with passing engine tests. |
-| `docs/DESIGN.md` | Updated planner/environment catalogs, hard/soft layers, metrics and Actions deployment. |
-| `docs/FILE-AUDIT.md` | This complete file-by-file review record. |
-| `docs/IMPLEMENTATION-PLAN.md` | Corrected baseline and costmap status; retained unfinished exact geometry, mapping and localization work. |
-| `docs/PORTFOLIO.md` | Updated implemented features and comparison demo; retained honest future-work scope. |
-| `docs/VALIDATION.md` | Updated OS/runtime, 30 tests, 80 missions, browser evidence and limitations. |
-| `docs/browser-check.txt` | Added real Edge smoke result covering native selects, all combinations and basic controls. |
-| `docs/browser-smoke.png` | Added and visually inspected desktop rendering after browser smoke check. |
-| `docs/planner-results.csv` | Regenerated identical copy of current sample results. |
-| `docs/test-output.txt` | Regenerated actual 30-test passing output. |
-| `index.html` | Fixed all five native planner options, v1.2 badge and guide text; confirmed in Edge. |
-| `sample-results.csv` | Regenerated all 80 current benchmark rows; all arrived. |
-| `style.css` | Reviewed desktop/mobile styles; explicitly positioned both mobile selects. |
-| `tests/core.test.cjs` | Reviewed engine coverage, optimal/approximate objectives, route clearance and mission matrices; retained. |
-| `tests/ui.test.cjs` | Added real-markup catalog parity test and native-style rejection of absent select values. |
+| `.github/workflows/static.yml` | Syntax checks, all 43 tests, 120 static missions and 12 navigation missions gate Pages deployment. |
+| `.gitignore` | Preserves dependency/secret exclusions and ignores optional Python bytecode caches. |
+| `.nojekyll` | Preserved static-host marker. |
+| `CHANGELOG.md` | Added v1.3 mapping, DWA, grid-cart, exact-geometry and worker release notes. |
+| `LICENSE` | MIT terms and attribution preserved unchanged. |
+| `README.md` | Rewritten for v1.3 behavior, controls, configuration schema, metrics, evidence and limits. |
+| `START-HERE.txt` | Updated six runtime files and sensor/DWA/cart startup experiment. |
+| `app.js` | Navigation controls, observed rendering, diagnostics, CSVs, version-three settings and safe experiment worker handling. |
+| `benchmark-navigation.cjs` | Separate 12-case known/sensor/static/dynamic A*+DWA matrix. |
+| `benchmark.cjs` | Eight environments x five planners x three controllers; expanded physical/navigation metrics. |
+| `core.js` | Observed-map selection, exact edges, curved guards, DWA, bounded recovery, state reasons and metrics. |
+| `docs/DESIGN.md` | Updated module boundaries, map separation, worker scope and cooperative-cart assumptions. |
+| `docs/FILE-AUDIT.md` | Current file-by-file review record. |
+| `docs/IMPLEMENTATION-PLAN.md` | Separates delivered release from noise/prediction, localization, larger maps and ROS future work. |
+| `docs/PORTFOLIO.md` | Updated delivered mapping/control capabilities and demonstration. |
+| `docs/VALIDATION.md` | 43 tests, 120+12 missions, real browser evidence and explicit limitations. |
+| `docs/browser-check.txt` | Current real Edge worker/sensor control smoke evidence. |
+| `docs/browser-mobile.png` | Captured mobile viewport and inspected. |
+| `docs/browser-smoke.png` | Captured desktop observed-map/DWA/cart view and inspected. |
+| `docs/navigation-results.csv` | 12/12 sensor/dynamic benchmark arrivals. |
+| `docs/planner-results.csv` | Matching 120-row current static benchmark snapshot. |
+| `docs/test-output.txt` | Captured final 43-test passing output. |
+| `index.html` | Five planners, eight environments, three controllers, navigation policies, layer controls, v1.3 badge and eight-column controller results. |
+| `navigation-worker.js` | Uses the same engine for off-thread experiment comparisons. |
+| `navigation.js` | Scan-only log odds, free-space stale clearing, deterministic yielding grid carts and acceleration-window velocity rollouts. |
+| `sample-results.csv` | 120 passing static benchmark rows, byte-identical to documentation copy. |
+| `style.css` | Responsive styling retained; actual desktop/mobile rendering inspected. |
+| `tests/browser_smoke.py` | Reproducible optional Edge/Chromium CDP checks for real native selectors, workers, responsive viewport and new controls; supports direct-file mode. |
+| `tests/core.test.cjs` | Original engine and global planner regressions retained and passed. |
+| `tests/navigation.test.cjs` | Scan isolation, stale clearing, exact geometry, DWA limits including speed reductions, cart behavior, sensor missions and bounded failure coverage. |
+| `tests/ui.test.cjs` | Catalog parity, version-three settings, three-controller results, async/stale worker responses and worker-error fallback. |
 
-Validation: 30 automated tests passed, all 80 benchmark missions arrived, JavaScript syntax checks and diff whitespace checks passed, local Markdown links resolve, and Edge verified five native options and all 40 planner/environment selections. Cross-browser, interactive mobile and file-dialog behavior are not fully certified.
+Release evidence: 43 passing tests, 120/120 static benchmark arrivals, 12/12 sensor/dynamic arrivals, syntax and whitespace checks, linked local documentation and actual Edge HTTP/offline integration with desktop/mobile rendering. Remaining limitations are documented in VALIDATION.md and IMPLEMENTATION-PLAN.md.

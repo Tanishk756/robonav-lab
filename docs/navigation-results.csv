@@ -1,0 +1,13 @@
+scenario,navigation,moving_obstacles,controller,status,time_s,distance_m,min_clearance_m,replans,recoveries,reason
+empty,known,false,dwa,arrived,66.100000,31.564995,2.260000,0,0,Goal reached
+empty,known,true,dwa,arrived,67.066667,33.138453,0.229361,67,0,Goal reached
+empty,sensor,false,dwa,arrived,65.016667,31.518603,2.260000,23,0,Goal reached
+empty,sensor,true,dwa,arrived,67.000000,33.241499,0.265104,71,0,Goal reached
+warehouse,known,false,dwa,arrived,78.050000,37.370963,1.188766,0,0,Goal reached
+warehouse,known,true,dwa,arrived,75.966667,37.566648,0.278478,75,0,Goal reached
+warehouse,sensor,false,dwa,arrived,78.483333,38.523319,1.125094,65,0,Goal reached
+warehouse,sensor,true,dwa,arrived,77.600000,38.496512,0.296224,89,0,Goal reached
+rooms,known,false,dwa,arrived,71.950000,34.348463,0.242203,0,0,Goal reached
+rooms,known,true,dwa,arrived,69.733333,34.674967,0.271951,69,0,Goal reached
+rooms,sensor,false,dwa,arrived,69.883333,34.399296,0.248914,52,0,Goal reached
+rooms,sensor,true,dwa,arrived,73.150000,36.699835,0.250010,86,0,Goal reached

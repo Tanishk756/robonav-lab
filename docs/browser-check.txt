@@ -1,2 +1,2 @@
-Microsoft Edge headless local-file smoke test
-PASS: five native planner options, eight environments, all 40 selections, five comparison rows and run/pause.
+Edge headless HTTP integration test
+PASS (http:): 5 planners, 8 environments, 3 controllers, 40 native selections, comparisons, sensor DWA with moving carts and observed map. HTTP mode additionally verifies workers and viewport responsiveness.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0 - 2026-10-13
+
+- Added scan-only log-odds mapping, observed/unknown rendering and optimistic/conservative policies.
+- Added acceleration-window DWA control, deterministic moving grid carts, bounded recovery and mission explanations.
+- Added physical body clearance, angular travel, peak acceleration and navigation diagnostics to telemetry/exports.
+- Replaced sampled straight-edge checks with exact segment/rectangle distance and added curved-step sagitta envelopes.
+- Moved planner/controller experiments to a worker with stale-result rejection and an offline fallback.
+- Added version-three experiment settings, navigation regressions, 120 static and 12 navigation benchmark missions.
+- Added reproducible Edge HTTP/offline integration checks and desktop/mobile screenshots.
+
+
 ## 1.2.0 - 2026-10-13
 
 - Added continuous obstacle inflation and a visible robot safety envelope.

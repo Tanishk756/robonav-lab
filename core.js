@@ -4,6 +4,7 @@
  */
 (function (root) {
   'use strict';
+  const N=typeof module!=='undefined'&&module.exports?require('./navigation.js'):root.RoboNavNavigation;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -11,6 +12,7 @@
   const blocked=(m,x,y)=>x<0||y<0||x>=m.w||y>=m.h||m.cells[y*m.w+x]===1;
   const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
 
+  const CONTROLLERS={waypoint:'Waypoints',pursuit:'Guarded pursuit',dwa:'Dynamic window (DWA)'};
   const PLANNERS={astar:'A*',dijkstra:'Dijkstra',weighted:'Weighted A* (1.8)',greedy:'Greedy best-first',bfs:'Breadth-first'};
   const ENVIRONMENTS={warehouse:'Warehouse aisles',corridors:'Alternating corridors',clutter:'Seeded clutter (731)',empty:'Open floor',office:'Office suites',slalom:'Slalom barriers',rooms:'Four rooms',loading:'Loading dock'};
 
@@ -128,15 +130,32 @@
     });
     return {...grid,penalties,weight:settings.costWeight,buildMs:now()-began};
   }
+  // Exact distance from a line segment to each nearby occupied rectangle.
+  // Tangency counts as collision. Map exterior is occupied.
   function segmentClear(m,a,b,clearance){
-    const n=Math.max(1,Math.ceil(dist(a,b)/.05));
-    for(let i=0;i<=n;i++){const t=i/n;if(collides(m,a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,clearance+.025))return false;}
+    const r=clearance+1e-9;
+    if(Math.min(a.x,b.x)<=r||Math.min(a.y,b.y)<=r||Math.max(a.x,b.x)>=m.w-r||Math.max(a.y,b.y)>=m.h-r)return false;
+    for(let y=Math.max(0,Math.ceil(Math.min(a.y,b.y)-r)-1);y<=Math.min(m.h-1,Math.floor(Math.max(a.y,b.y)+r));y++)
+      for(let x=Math.max(0,Math.ceil(Math.min(a.x,b.x)-r)-1);x<=Math.min(m.w-1,Math.floor(Math.max(a.x,b.x)+r));x++)if(m.cells[y*m.w+x]){
+        let enter=0,leave=1;
+        for(const [p,d,low] of [[a.x,b.x-a.x,x],[a.y,b.y-a.y,y]]){
+          if(Math.abs(d)<1e-12){if(p<low||p>low+1){enter=1;leave=0;break;}}
+          else {const t1=(low-p)/d,t2=(low+1-p)/d;enter=Math.max(enter,Math.min(t1,t2));leave=Math.min(leave,Math.max(t1,t2));}
+        }
+        if(enter<=leave)return false;
+        let distance=Math.min(Math.hypot(a.x-clamp(a.x,x,x+1),a.y-clamp(a.y,y,y+1)),Math.hypot(b.x-clamp(b.x,x,x+1),b.y-clamp(b.y,y,y+1)));
+        for(const corner of [{x,y},{x:x+1,y},{x,y:y+1},{x:x+1,y:y+1}])distance=Math.min(distance,segmentDistance(corner,a,b));
+        if(distance<=r)return false;
+      }
     return true;
   }
   function config(options={}){
     const number=(name,fallback,min,max)=>{const v=options[name]??fallback;if(!Number.isFinite(v)||v<min||v>max)throw Error(`Invalid ${name}: use ${min}–${max}.`);return v;};
-    const controller=options.controller??'waypoint';if(!['waypoint','pursuit'].includes(controller))throw Error('Unknown controller.');
-    return {controller,radius:number('radius',.24,.15,.7),margin:number('margin',.12,0,.3),lookahead:number('lookahead',.9,.4,1.6),softBand:number('softBand',1.5,0,5),costWeight:number('costWeight',2,0,20),costDecay:number('costDecay',2,.25,8)};
+    const controller=options.controller??'waypoint';if(!Object.hasOwn(CONTROLLERS,controller))throw Error('Unknown controller.');
+    const navigation=options.navigation??'known',unknownPolicy=options.unknownPolicy??'optimistic';
+    if(!['known','sensor'].includes(navigation)||!['optimistic','conservative'].includes(unknownPolicy))throw Error('Invalid navigation mode or unknown policy.');
+    if(options.movingObstacles!==undefined&&typeof options.movingObstacles!=='boolean')throw Error('Invalid movingObstacles.');
+    return {navigation,unknownPolicy,movingObstacles:options.movingObstacles??false,controller,radius:number('radius',.24,.15,.7),margin:number('margin',.12,0,.3),lookahead:number('lookahead',.9,.4,1.6),softBand:number('softBand',1.5,0,5),costWeight:number('costWeight',2,0,20),costDecay:number('costDecay',2,.25,8)};
   }
   function pursuitTarget(p,path,from,lookahead){
     let best={distance:Infinity,index:from,t:0,point:path[from]};
@@ -160,35 +179,54 @@
   function segmentDistance(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy||1),0,1);return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);}
 
   class Simulation {
-    constructor(map,algorithm='astar',speed=1.6,options={}){this.map=validateMap(map);this.algorithm=algorithm;this.speed=speed;this.settings=config(options);this.reset();}
+    constructor(map,algorithm='astar',speed=1.6,options={}){if(!Object.hasOwn(PLANNERS,algorithm))throw Error('Unknown planner.');if(!Number.isFinite(speed)||speed<.4||speed>3)throw Error('Invalid speed.');this.map=validateMap(map);this.algorithm=algorithm;this.speed=speed;this.settings=config(options);this.reset();}
     reset(){
-      this.pose={...center(this.map.start),theta:0};this.status='ready';this.path=[];this.expanded=[];this.target=1;
+      this.pose={...center(this.map.start),theta:0};this.navigationState='idle';this.reason='Ready to plan';this.minClearance=Infinity;this.angularTravel=0;this.peakAcceleration=0;this.stallTime=0;this.recoveryAttempts=0;this.lastReplan=-Infinity;this.scanElapsed=0;this.pendingReplan=false;
+      this.carts=this.settings.movingObstacles?N.createCarts(this.map):[];this.worldMap=N.worldWithCarts(this.map,this.carts);this.mapper=new N.OccupancyMapper(this.map,this.settings.unknownPolicy);this.rays=lidar(this.worldMap,this.pose);this.mapper.update(this.pose,this.rays);this.navigationMap=this.settings.navigation==='sensor'?this.mapper.grid():this.worldMap;this.status='ready';this.path=[];this.expanded=[];this.target=1;
       this.time=0;this.distance=0;this.replans=0;this.planMs=0;this.cost=0;this.pathLength=0;this.v=0;this.omega=0;this.left=0;this.right=0;
-      this.errorSq=0;this.samples=0;this.error=0;this.trail=[{...this.pose}];this.telemetry=[];this.lastSample=-1;this.events=[];this.progress=0;this.fallbacks=0;this.fallbackActive=false;this.carrot=null;this.planningMap=buildCostmap(this.map,this.settings);
+      this.errorSq=0;this.samples=0;this.error=0;this.trail=[{...this.pose}];this.telemetry=[];this.lastSample=-1;this.events=[];this.progress=0;this.fallbacks=0;this.fallbackActive=false;this.carrot=null;this.planningMap=buildCostmap(this.navigationMap,this.settings);
     }
     log(message){this.events.unshift({time:this.time,message});this.events=this.events.slice(0,30);}
     compute(){
-      this.planningMap=buildCostmap(this.map,this.settings);
-      if(collides(this.map,this.pose.x,this.pose.y,this.clearance)){this.path=[];this.expanded=[];this.cost=this.pathLength=Infinity;this.planMs=0;this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('Robot footprint plus margin does not fit at its current position.');return false;}
-      const s={x:Math.floor(this.pose.x),y:Math.floor(this.pose.y)},p=plan(this.planningMap,s,this.map.goal,this.algorithm,this.clearance,this.map);
+      this.worldMap=N.worldWithCarts(this.map,this.carts);this.rays=lidar(this.worldMap,this.pose);this.mapper.update(this.pose,this.rays);this.navigationMap=this.settings.navigation==='sensor'?this.mapper.grid():this.worldMap;
+      this.planningMap=buildCostmap(this.navigationMap,this.settings);
+      if(collides(this.navigationMap,this.pose.x,this.pose.y,this.clearance)){this.path=[];this.expanded=[];this.cost=this.pathLength=Infinity;this.planMs=0;this.status='blocked';this.v=this.omega=this.left=this.right=0;this.navigationState='failed';this.reason='Current footprint does not fit in the navigation map';this.log(this.reason);return false;}
+      const s={x:Math.floor(this.pose.x),y:Math.floor(this.pose.y)},p=plan(this.planningMap,s,this.map.goal,this.algorithm,this.clearance,this.navigationMap);
       this.path=p.path;this.expanded=p.expanded;this.planMs=p.ms;this.cost=p.cost;this.pathLength=p.length;this.target=0;this.progress=0;this.carrot=null;
-      if(!p.path.length){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('No route to goal. Edit the map and plan again.');return false;}
+      if(!p.path.length){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.navigationState='unreachable';this.reason=this.settings.navigation==='sensor'?'No observed route: unknown cells may be blocked. Choose optimistic exploration or edit the goal.':'No route to goal. Edit the map or reduce clearance.';this.log(this.reason);return false;}
+      this.reason='Route available';this.navigationState=this.status==='running'?'navigating':'idle';
       this.log(`${PLANNERS[this.algorithm]}: ${p.expanded.length} cells expanded, ${p.length.toFixed(2)} m route, ${p.cost.toFixed(2)} weighted cost`);return true;
     }
-    start(){if(this.status==='arrived')this.reset();if(this.status==='paused'){this.status='running';return;}if(this.compute())this.status='running';}
-    replan(){this.replans++;const wasRunning=this.status==='running';if(this.compute())this.status=wasRunning?'running':'ready';}
+    start(){if(this.status==='arrived')this.reset();if(this.status==='paused'){this.status='running';this.navigationState='navigating';return;}if(this.compute()){this.status='running';this.navigationState='navigating';}}
+    replan(){this.pendingReplan=false;this.navigationState='replanning';this.replans++;this.lastReplan=this.time;const wasRunning=this.status==='running';if(this.compute())this.status=wasRunning?'running':'ready';else if(wasRunning&&this.carts.length){this.recoveryAttempts++;this.status='running';this.navigationState='recovering';this.reason='Route blocked by changing occupancy: waiting to retry';}}
     get rmse(){return this.samples?Math.sqrt(this.errorSq/this.samples):0;}
     get clearance(){return this.settings.radius+this.settings.margin;}
     safeCommand(v,w,horizon=.4){
       let p=this.pose;const dt=.025;
-      for(let t=0;t<horizon;t+=dt){p=integrate(p,v-w*.42/2,v+w*.42/2,.42,dt);if(collides(this.map,p.x,p.y,this.clearance+.005))return false;}
+      for(let t=0;t<horizon;t+=dt){const next=integrate(p,v-w*.42/2,v+w*.42/2,.42,dt),sag=Math.abs(w)<1e-9?0:Math.abs(v/w)*(1-Math.cos(w*dt/2));if(!segmentClear(this.navigationMap,p,next,this.clearance+sag+.005))return false;p=next;}
       return true;
     }
     step(dt){
       if(this.status!=='running')return;
       dt=clamp(dt,0,.05);
+      if(dt===0)return;
+      if(this.time>=600){this.status='blocked';this.navigationState='failed';this.reason='Mission time limit reached (600 simulation seconds)';this.v=this.omega=this.left=this.right=0;return;}
+      const cartChanged=N.advanceCarts(this.carts,dt,this.pose,this.clearance,this.map);
+      this.worldMap=N.worldWithCarts(this.map,this.carts);this.scanElapsed+=dt;
+      if(this.scanElapsed>=.2||cartChanged){
+        this.scanElapsed=0;this.rays=lidar(this.worldMap,this.pose);const changed=this.mapper.update(this.pose,this.rays);
+        this.navigationMap=this.settings.navigation==='sensor'?this.mapper.grid():this.worldMap;
+        const needsReplan=this.settings.navigation==='sensor'?changed:cartChanged;this.pendingReplan=this.pendingReplan||needsReplan;
+        if(this.pendingReplan&&this.time-this.lastReplan>=.5){this.replan();if(this.status!=='running')return;}
+      }
       const goal=center(this.map.goal);
-      if(dist(this.pose,goal)<.12){this.status='arrived';this.v=this.omega=this.left=this.right=0;this.log('Goal reached. Mission complete.');return;}
+      if(dist(this.pose,goal)<.12){this.status='arrived';this.v=this.omega=this.left=this.right=0;this.navigationState='arrived';this.reason='Goal reached';this.log('Goal reached. Mission complete.');return;}
+      if(!this.path.length){
+        this.time+=dt;this.stallTime+=dt;this.v=this.omega=this.left=this.right=0;
+        if(this.time-this.lastReplan>=2){this.recoveryAttempts++;this.replan();}
+        if(this.stallTime>8&&this.recoveryAttempts>=3){this.status='blocked';this.navigationState='failed';this.reason='Recovery limit reached: route remains blocked';}
+        return;
+      }
       while(this.target<this.path.length-1&&dist(this.pose,center(this.path[this.target]))<.09)this.target++;
       let target=center(this.path[this.target]),d=dist(this.pose,target),e=wrap(Math.atan2(target.y-this.pose.y,target.x-this.pose.x)-this.pose.theta);
       // Rotate first on sharp turns; reduce forward speed near each waypoint.
@@ -207,22 +245,40 @@
         }
         this.fallbackActive=!safe;
       }
+      if(this.settings.controller==='dwa'){
+        const aim=pursuitTarget(this.pose,this.path.map(center),this.progress,this.settings.lookahead);this.progress=aim.index;this.target=Math.min(this.progress+1,this.path.length-1);this.carrot=aim.point;
+        const command=N.dynamicWindow(api,this.navigationMap,this.pose,{v:this.v,w:this.omega},aim.point,this.speed,this.clearance,dt);v=command.v;w=command.w;
+      }
+      if(Math.abs(v)<.01&&Math.abs(w)<.05){this.stallTime+=dt;this.navigationState='recovering';this.reason='Waiting for a safe local command';}
+      else {this.stallTime=0;this.navigationState='navigating';this.reason='Following route';}
+      if(this.stallTime>2&&this.time-this.lastReplan>2){this.recoveryAttempts++;this.replan();if(this.status!=='running')return;}
+      if(this.recoveryAttempts>=3&&this.stallTime>8){this.status='blocked';this.navigationState='failed';this.reason='Recovery limit reached: no safe progress';this.v=this.omega=this.left=this.right=0;return;}
       this.left=v-w*track/2;this.right=v+w*track/2;
       const next=integrate(this.pose,this.left,this.right,track,dt);
-      if(collides(this.map,next.x,next.y,this.clearance)){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('Clearance guard stopped the robot. Reset or adjust its route.');return;}
+      const sag=Math.abs(w)<1e-9?0:Math.abs(v/w)*(1-Math.cos(w*dt/2));
+      if(!segmentClear(this.worldMap,this.pose,next,this.clearance+sag)){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.navigationState='failed';this.reason='Physical safety guard stopped motion; observe or replan the route';this.log(this.reason);return;}
+      this.minClearance=Math.min(this.minClearance,obstacleDistance(this.worldMap,next.x,next.y)-this.settings.radius);this.angularTravel+=Math.abs(w)*dt;this.peakAcceleration=Math.max(this.peakAcceleration,Math.abs(v-this.v)/Math.max(dt,1e-9));
       this.distance+=dist(this.pose,next);this.pose=next;this.v=v;this.omega=w;this.time+=dt;
       this.error=Infinity;
       for(let i=1;i<this.path.length;i++)this.error=Math.min(this.error,segmentDistance(this.pose,center(this.path[i-1]),center(this.path[i])));
       if(!Number.isFinite(this.error))this.error=dist(this.pose,goal);
       this.errorSq+=this.error*this.error;this.samples++;
-      if(this.time-this.lastSample>=.1){this.lastSample=this.time;this.trail.push({...this.pose});this.telemetry.push({time:this.time,x:this.pose.x,y:this.pose.y,theta:this.pose.theta,v,w,left:this.left,right:this.right,error:this.error});}
+      if(this.time-this.lastSample>=.1){this.lastSample=this.time;this.trail.push({...this.pose});this.telemetry.push({time:this.time,x:this.pose.x,y:this.pose.y,theta:this.pose.theta,v,w,left:this.left,right:this.right,error:this.error,clearance:this.minClearance,coverage:this.mapper.coverage,state:this.navigationState,replans:this.replans});}
     }
   }
   function benchmarkMission(map,algorithm,speed,options){
     const sim=new Simulation(map,algorithm,speed,options);sim.start();
     for(let i=0;i<36000&&sim.status==='running';i++)sim.step(1/60);
-    return {controller:sim.settings.controller,status:sim.status==='running'?'timeout':sim.status,time:sim.time,distance:sim.distance,rmse:sim.rmse,fallbacks:sim.fallbacks};
+    return {controller:sim.settings.controller,status:sim.status==='running'?'timeout':sim.status,time:sim.time,distance:sim.distance,rmse:sim.rmse,fallbacks:sim.fallbacks,minClearance:sim.minClearance,angularTravel:sim.angularTravel,peakAcceleration:sim.peakAcceleration,replans:sim.replans,recoveries:sim.recoveryAttempts,reason:sim.reason};
   }
-  const api={PLANNERS,ENVIRONMENTS,makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,buildCostmap,obstacleDistance,segmentClear,config,pursuitTarget,benchmarkMission};
+  function comparePlanners(map,settings={}){
+    const cfg=config(settings),clearance=cfg.radius+cfg.margin,grid=buildCostmap(map,cfg),results=[];
+    for(const algorithm of Object.keys(PLANNERS)){
+      plan(grid,map.start,map.goal,algorithm,clearance,map);const times=[];let p;
+      for(let i=0;i<25;i++){p=plan(grid,map.start,map.goal,algorithm,clearance,map);times.push(p.ms);}
+      times.sort((a,b)=>a-b);results.push({algorithm,cost:Number.isFinite(p.cost)?p.cost:null,length:Number.isFinite(p.length)?p.length:null,expanded:p.expanded.length,ms:times[12],buildMs:grid.buildMs,status:p.path.length?'Reachable':'No route'});
+    }return results;
+  }
+  const api={CONTROLLERS,comparePlanners,...N,PLANNERS,ENVIRONMENTS,makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,buildCostmap,obstacleDistance,segmentClear,config,pursuitTarget,benchmarkMission};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.RoboNav=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

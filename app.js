@@ -4,7 +4,7 @@
   const R=window.RoboNav,$=id=>document.getElementById(id);
   const canvas=$('map'),ctx=canvas.getContext('2d'),scan=$('scan'),sc=scan.getContext('2d');
   let sim=new R.Simulation(R.makeMap('warehouse')),tool='wall',drawing=false,dirty=false,results=[],controlResults=[],hover=null;
-  const readSettings=()=>R.config({controller:$('controller').value,radius:Number($('radius').value),margin:Number($('margin').value),lookahead:Number($('lookahead').value),softBand:Number($('softBand').value),costWeight:Number($('costWeight').value),costDecay:Number($('costDecay').value)});
+  const readSettings=()=>R.config({controller:$('controller').value,navigation:$('navigation').value,unknownPolicy:$('unknownPolicy').value,movingObstacles:$('movingObstacles').checked,radius:Number($('radius').value),margin:Number($('margin').value),lookahead:Number($('lookahead').value),softBand:Number($('softBand').value),costWeight:Number($('costWeight').value),costDecay:Number($('costDecay').value)});
   let keyboard={x:3,y:3},lastFrame=0,accumulator=0,lastUI=0,toastTimer,logKey='',rays=[];
   const palette={lime:'#c5f46b',teal:'#4cd7cb',amber:'#ffc27d'};
   const toast=message=>{$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4000);};
@@ -12,10 +12,24 @@
     const url=URL.createObjectURL(new Blob([body],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   const csv=rows=>rows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');
-  function invalidate(){controlResults=[];$('exportControllers').disabled=true;$('controllerResults').innerHTML='<tr><td colspan="5" class="empty-row">Settings or map changed. Run a fresh control experiment.</td></tr>';results=[];$('results').innerHTML='<tr><td colspan="6" class="empty-row">Map or endpoints changed. Run a fresh comparison.</td></tr>';$('exportResults').disabled=true;}
+  let experimentRevision=0,experimentId=0,experimentWorker=null;
+  const pendingExperiments=new Map();
+  const executeExperiment=data=>data.kind==='planners'?R.comparePlanners(data.map,data.settings):Object.keys(R.CONTROLLERS).map(controller=>R.benchmarkMission(data.map,data.algorithm,data.speed,{...data.settings,controller}));
+  function completeExperiment(id,result,error){const job=pendingExperiments.get(id);if(!job)return;pendingExperiments.delete(id);job.button.disabled=false;if(job.revision!==experimentRevision)return;if(error){toast(error);return;}job.done(result);}
+  try{if(typeof Worker!=='undefined'){
+    experimentWorker=new Worker('./navigation-worker.js');
+    experimentWorker.onmessage=({data})=>completeExperiment(data.id,data.result,data.error);
+    experimentWorker.onerror=()=>{experimentWorker.terminate();experimentWorker=null;for(const [id,job] of pendingExperiments){try{completeExperiment(id,executeExperiment(job.data));}catch(error){completeExperiment(id,null,error.message);}}};
+  }}catch{experimentWorker=null;}
+  function experiment(kind,button,done){
+    const data={id:++experimentId,kind,map:kind==='planners'?sim.navigationMap:sim.map,settings:sim.settings,algorithm:sim.algorithm,speed:sim.speed};
+    if(!experimentWorker){try{done(executeExperiment(data));}catch(error){toast(error.message);}return;}
+    button.disabled=true;pendingExperiments.set(data.id,{data,button,done,revision:experimentRevision});experimentWorker.postMessage(data);
+  }
+  function invalidate(){experimentRevision++;controlResults=[];$('exportControllers').disabled=true;$('controllerResults').innerHTML='<tr><td colspan="8" class="empty-row">Settings or map changed. Run a fresh control experiment.</td></tr>';results=[];$('results').innerHTML='<tr><td colspan="6" class="empty-row">Map or endpoints changed. Run a fresh comparison.</td></tr>';$('exportResults').disabled=true;}
   function fresh(map){sim=new R.Simulation(map,$('algorithm').value,Number($('speed').value),readSettings());sim.compute();sim.status=sim.path.length?'ready':'blocked';invalidate();logKey='';accumulator=0;render();}
   function run(){
-    if(sim.status==='running'){sim.status='paused';sim.v=sim.omega=sim.left=sim.right=0;sim.log('Mission paused.');}
+    if(sim.status==='running'){sim.status='paused';sim.navigationState='paused';sim.reason='Mission paused';sim.v=sim.omega=sim.left=sim.right=0;sim.log('Mission paused.');}
     else sim.start();
     accumulator=0;updateUI();
   }
@@ -25,7 +39,8 @@
   $('plan').onclick=()=>{sim.status='ready';sim.v=sim.omega=sim.left=sim.right=0;sim.compute();updateUI();};
   $('scenario').onchange=()=>fresh(R.makeMap($('scenario').value));
   $('algorithm').onchange=()=>{sim.algorithm=$('algorithm').value;invalidate();sim.replan();updateUI();};
-  for(const id of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay'])$(id).onchange=()=>{try{readSettings();fresh(sim.map);}catch(err){toast(err.message);for(const key of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay'])$(key).value=sim.settings[key];}};
+  for(const id of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay','navigation','unknownPolicy'])$(id).onchange=()=>{try{readSettings();fresh(sim.map);}catch(err){toast(err.message);for(const key of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay','navigation','unknownPolicy'])$(key).value=sim.settings[key];}};
+  $('movingObstacles').onchange=()=>fresh(sim.map);
   $('speed').oninput=()=>{sim.speed=Number($('speed').value);$('speedValue').textContent=sim.speed.toFixed(1)+' m/s';invalidate();};
   document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>selectTool(b.dataset.tool));
   function cellFromEvent(e){const r=canvas.getBoundingClientRect();return {x:Math.floor((e.clientX-r.left)/r.width*sim.map.w),y:Math.floor((e.clientY-r.top)/r.height*sim.map.h)};}
@@ -70,47 +85,41 @@
     if(!p){toast('The robot is too close to the goal. Reset for another experiment.');return;}
     sim.map.cells[p.y*sim.map.w+p.x]=1;invalidate();sim.log(`Obstacle inserted at (${p.x}, ${p.y}). Replanning.`);sim.replan();updateUI();
   };
-  $('saveMap').onclick=()=>download('robonav-map.json',JSON.stringify({...sim.map,settingsVersion:2,robot:sim.settings,speed:sim.speed,algorithm:sim.algorithm},null,2),'application/json');
+  $('saveMap').onclick=()=>download('robonav-map.json',JSON.stringify({...sim.map,settingsVersion:3,robot:sim.settings,speed:sim.speed,algorithm:sim.algorithm},null,2),'application/json');
   $('loadMap').onclick=()=>$('mapFile').click();
   $('mapFile').onchange=async e=>{
     const file=e.target.files[0];if(!file)return;
-    try{if(file.size>100000)throw Error('Map file exceeds the 100 KB limit.');const data=JSON.parse(await file.text()),m=R.validateMap(data),settings=R.config(data.robot??{});if(data.settingsVersion!==undefined&&![1,2].includes(data.settingsVersion))throw Error('Unsupported settings version.');if(data.speed!==undefined&&(!Number.isFinite(data.speed)||data.speed<.4||data.speed>3))throw Error('Invalid speed.');if(data.algorithm!==undefined&&!Object.hasOwn(R.PLANNERS,data.algorithm))throw Error('Invalid planner.');for(const key of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay'])$(key).value=settings[key];$('speed').value=data.speed??1.6;$('speedValue').textContent=Number($('speed').value).toFixed(1)+' m/s';$('algorithm').value=data.algorithm??'astar';fresh(m);$('scenario').selectedIndex=-1;toast('Map imported. Ready to plan.');}
+    try{if(file.size>100000)throw Error('Map file exceeds the 100 KB limit.');const data=JSON.parse(await file.text()),m=R.validateMap(data),settings=R.config(data.robot??{});if(data.settingsVersion!==undefined&&![1,2,3].includes(data.settingsVersion))throw Error('Unsupported settings version.');if(data.speed!==undefined&&(!Number.isFinite(data.speed)||data.speed<.4||data.speed>3))throw Error('Invalid speed.');if(data.algorithm!==undefined&&!Object.hasOwn(R.PLANNERS,data.algorithm))throw Error('Invalid planner.');for(const key of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay','navigation','unknownPolicy'])$(key).value=settings[key];$('movingObstacles').checked=settings.movingObstacles;$('speed').value=data.speed??1.6;$('speedValue').textContent=Number($('speed').value).toFixed(1)+' m/s';$('algorithm').value=data.algorithm??'astar';fresh(m);$('scenario').selectedIndex=-1;toast('Map imported. Ready to plan.');}
     catch(err){toast('Import failed: '+err.message);}finally{e.target.value='';}
   };
   $('snapshot').onclick=()=>{renderMap();const a=document.createElement('a');a.download='robonav-navigation.png';a.href=canvas.toDataURL('image/png');a.click();};
   $('help').onclick=()=>$('guide').showModal();$('closeGuide').onclick=()=>$('guide').close();
   $('guide').addEventListener('click',e=>{if(e.target===$('guide')){const r=$('guide').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('guide').close();}});
-  $('compare').onclick=()=>{
-    results=[];
-    for(const algorithm of Object.keys(R.PLANNERS)){
-      // Warm-up is excluded; median attenuates timer noise and scheduling spikes.
-      R.plan(sim.planningMap,sim.map.start,sim.map.goal,algorithm,sim.clearance,sim.map);
-      const times=[];let p;for(let i=0;i<25;i++){p=R.plan(sim.planningMap,sim.map.start,sim.map.goal,algorithm,sim.clearance,sim.map);times.push(p.ms);}
-      times.sort((a,b)=>a-b);results.push({algorithm,cost:Number.isFinite(p.cost)?p.cost:null,length:Number.isFinite(p.length)?p.length:null,expanded:p.expanded.length,ms:times[12],status:p.path.length?'Reachable':'No route'});
-    }
+  $('compare').onclick=()=>experiment('planners',$('compare'),data=>{
+    results=data;
     $('results').replaceChildren();for(const r of results){const tr=document.createElement('tr');for(const value of [R.PLANNERS[r.algorithm],r.cost===null?'—':r.length.toFixed(2)+' m',r.cost===null?'No route':r.cost.toFixed(2),r.expanded,r.ms.toFixed(3)+' ms',r.status]){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('results').append(tr);}
     $('exportResults').disabled=false;toast('Comparison complete: 25 measured searches per planner.');
-  };
+  });
   $('exportResults').onclick=()=>download('robonav-planner-comparison.csv',csv([
-    ['scenario','algorithm','path_m','weighted_cost','costmap_build_ms','soft_band_m','cost_weight','cost_decay','expanded_cells','median_ms','searches','status','start_x','start_y','goal_x','goal_y','radius_m','margin_m','browser'],
-    ...results.map(r=>[sim.map.name,r.algorithm,r.length??'',r.cost??'',sim.planningMap.buildMs,sim.settings.softBand,sim.settings.costWeight,sim.settings.costDecay,r.expanded,r.ms,25,r.status,sim.map.start.x,sim.map.start.y,sim.map.goal.x,sim.map.goal.y,sim.settings.radius,sim.settings.margin,navigator.userAgent])
+    ['scenario','algorithm','path_m','weighted_cost','costmap_build_ms','soft_band_m','cost_weight','cost_decay','navigation','unknown_policy','moving_obstacles','expanded_cells','median_ms','searches','status','start_x','start_y','goal_x','goal_y','radius_m','margin_m','browser'],
+    ...results.map(r=>[sim.map.name,r.algorithm,r.length??'',r.cost??'',r.buildMs,sim.settings.softBand,sim.settings.costWeight,sim.settings.costDecay,sim.settings.navigation,sim.settings.unknownPolicy,sim.settings.movingObstacles,r.expanded,r.ms,25,r.status,sim.map.start.x,sim.map.start.y,sim.map.goal.x,sim.map.goal.y,sim.settings.radius,sim.settings.margin,navigator.userAgent])
   ]),'text/csv');
-  $('compareControllers').onclick=()=>{
-    controlResults=['waypoint','pursuit'].map(controller=>R.benchmarkMission(sim.map,sim.algorithm,sim.speed,{...sim.settings,controller}));
-    $('controllerResults').replaceChildren();for(const r of controlResults){const tr=document.createElement('tr');for(const value of [r.controller==='pursuit'?'Guarded pursuit':'Waypoints',r.time.toFixed(2),r.distance.toFixed(2),r.rmse.toFixed(3),r.status]){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('controllerResults').append(tr);}
+  $('compareControllers').onclick=()=>experiment('controllers',$('compareControllers'),data=>{
+    controlResults=data;
+    $('controllerResults').replaceChildren();for(const r of controlResults){const tr=document.createElement('tr');for(const value of [R.CONTROLLERS[r.controller],r.time.toFixed(2),r.distance.toFixed(2),r.rmse.toFixed(3),Number.isFinite(r.minClearance)?r.minClearance.toFixed(3):'-',r.replans,r.recoveries,r.status]){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('controllerResults').append(tr);}
     $('exportControllers').disabled=false;lastFrame=0;accumulator=0;toast('Controller comparison complete. Your live mission is unchanged.');
-  };
-  $('exportControllers').onclick=()=>download('robonav-controller-comparison.csv',csv([['scenario','planner','controller','speed_m_s','radius_m','margin_m','lookahead_m','soft_band_m','cost_weight','cost_decay','time_s','distance_m','rmse_m','fallbacks','status'],...controlResults.map(r=>[sim.map.name,sim.algorithm,r.controller,sim.speed,sim.settings.radius,sim.settings.margin,sim.settings.lookahead,sim.settings.softBand,sim.settings.costWeight,sim.settings.costDecay,r.time,r.distance,r.rmse,r.fallbacks,r.status])]),'text/csv');
+  });
+  $('exportControllers').onclick=()=>download('robonav-controller-comparison.csv',csv([['scenario','planner','controller','speed_m_s','radius_m','margin_m','lookahead_m','soft_band_m','cost_weight','cost_decay','navigation','unknown_policy','moving_obstacles','min_clearance_m','angular_travel_rad','peak_acceleration_m_s2','replans','recoveries','reason','time_s','distance_m','rmse_m','fallbacks','status'],...controlResults.map(r=>[sim.map.name,sim.algorithm,r.controller,sim.speed,sim.settings.radius,sim.settings.margin,sim.settings.lookahead,sim.settings.softBand,sim.settings.costWeight,sim.settings.costDecay,sim.settings.navigation,sim.settings.unknownPolicy,sim.settings.movingObstacles,r.minClearance,r.angularTravel,r.peakAcceleration,r.replans,r.recoveries,r.reason,r.time,r.distance,r.rmse,r.fallbacks,r.status])]),'text/csv');
   $('exportTelemetry').onclick=()=>{
     if(!sim.telemetry.length){toast('Run the robot first to collect telemetry.');return;}
-    download('robonav-telemetry.csv',csv([['time_s','x_m','y_m','heading_rad','linear_m_s','angular_rad_s','left_wheel_m_s','right_wheel_m_s','tracking_error_m'],...sim.telemetry.map(r=>[r.time,r.x,r.y,r.theta,r.v,r.w,r.left,r.right,r.error].map(v=>v.toFixed(5)))]),'text/csv');
+    download('robonav-telemetry.csv',csv([['time_s','x_m','y_m','heading_rad','linear_m_s','angular_rad_s','left_wheel_m_s','right_wheel_m_s','tracking_error_m','minimum_body_clearance_m','observed_fraction','navigation_state','replans'],...sim.telemetry.map(r=>[r.time,r.x,r.y,r.theta,r.v,r.w,r.left,r.right,r.error,r.clearance,r.coverage].map(v=>v.toFixed(5)).concat(r.state,r.replans))]),'text/csv');
   };
 
   function line(points,color,width,dash=[]){
     if(!points.length)return;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x*30,p.y*30):ctx.moveTo(p.x*30,p.y*30));ctx.stroke();ctx.setLineDash([]);
   }
   function renderMap(){
-    const m=sim.map;ctx.fillStyle='#0e1622';ctx.fillRect(0,0,960,720);
+    const observed=$('showObserved').checked,m=observed?sim.mapper.grid():R.worldWithCarts(sim.map,sim.carts);ctx.fillStyle='#0e1622';ctx.fillRect(0,0,960,720);
     if($('showCostmap').checked&&sim.planningMap.penalties){for(let i=0;i<m.cells.length;i++){const value=sim.planningMap.penalties[i];if(value>0){ctx.fillStyle=`rgba(167,139,250,${.12+.5*value})`;ctx.fillRect(i%m.w*30,Math.floor(i/m.w)*30,30,30);}}}
     if($('showExpanded').checked){ctx.fillStyle='#223c604f';for(const p of sim.expanded)ctx.fillRect(p.x*30+1,p.y*30+1,28,28);}
     ctx.lineWidth=1;ctx.strokeStyle='#23304480';ctx.beginPath();for(let x=0;x<=960;x+=30){ctx.moveTo(x,0);ctx.lineTo(x,720);}for(let y=0;y<=720;y+=30){ctx.moveTo(0,y);ctx.lineTo(960,y);}ctx.stroke();
@@ -126,7 +135,9 @@
       if(!boundary){ctx.fillStyle='#4d6482';ctx.fillRect(x*30+2,y*30+2,26,2);ctx.fillStyle='#29364a';ctx.fillRect(x*30+2,y*30+26,26,2);}
     }
     if($('showInflation').checked){ctx.fillStyle='#ffc27d25';for(let i=0;i<m.cells.length;i++)if(!m.cells[i]&&sim.planningMap.cells[i])ctx.fillRect(i%m.w*30+1,Math.floor(i/m.w)*30+1,28,28);}
-    rays=R.lidar(m,sim.pose);
+    if(observed){for(let i=0;i<m.cells.length;i++)if(!sim.mapper.seen[i]){ctx.fillStyle='#070a10e8';ctx.fillRect(i%m.w*30,Math.floor(i/m.w)*30,30,30);}}
+    for(const cart of sim.carts){if(observed&&(!sim.mapper.seen[cart.y*m.w+cart.x]||!m.cells[cart.y*m.w+cart.x]))continue;ctx.strokeStyle='#ff7799';ctx.lineWidth=2;ctx.strokeRect(cart.x*30+2,cart.y*30+2,26,26);}
+    rays=sim.rays;
     if($('showLidar').checked){ctx.lineWidth=.8;ctx.strokeStyle='#4cd7cb22';ctx.beginPath();for(const ray of rays){ctx.moveTo(sim.pose.x*30,sim.pose.y*30);ctx.lineTo(ray.x*30,ray.y*30);}ctx.stroke();ctx.fillStyle='#4cd7cb90';for(const r of rays)if(r.hit)ctx.fillRect(r.x*30-1.2,r.y*30-1.2,2.4,2.4);}
     line(sim.path.map(R.center),'#c5f46b26',10);line(sim.path.map(R.center),palette.lime,2.5,[7,5]);
     if($('showTrail').checked)line(sim.trail,palette.amber,2.5);
@@ -156,6 +167,7 @@
     f('inflationValue',`Obstacle inflation: ${sim.clearance.toFixed(2)} m. Robot safety radius: ${sim.clearance.toFixed(2)} m (${sim.settings.radius.toFixed(2)} + ${sim.settings.margin.toFixed(2)} m).`);
     const metric=(id,v,unit)=>{$(id).replaceChildren(document.createTextNode(v+' '));const em=document.createElement('em');em.textContent=unit;$(id).append(em);};
     metric('routeMetric',Number.isFinite(sim.pathLength)?sim.pathLength.toFixed(2):'—','m');metric('planMetric',sim.planMs.toFixed(2),'ms');metric('distanceMetric',sim.distance.toFixed(2),'m');metric('errorMetric',sim.rmse.toFixed(3),'m');
+    f('navigationState',sim.navigationState);f('missionReason',sim.reason);f('coverage',(sim.mapper.coverage*100).toFixed(1)+'%');f('minClearance',Number.isFinite(sim.minClearance)?sim.minClearance.toFixed(3)+' m':'-');f('recoveries',sim.recoveryAttempts);f('angularTravel',sim.angularTravel.toFixed(2)+' rad');f('peakAcceleration',sim.peakAcceleration.toFixed(2)+' m/s2');
     f('weightedCost',Number.isFinite(sim.cost)?sim.cost.toFixed(2):'No route');f('costmapTime',(sim.planningMap.buildMs??0).toFixed(2)+' ms');
     f('poseX',sim.pose.x.toFixed(2)+' m');f('poseY',sim.pose.y.toFixed(2)+' m');f('heading',(sim.pose.theta*180/Math.PI).toFixed(1)+'°');f('linear',sim.v.toFixed(2)+' m/s');f('angular',sim.omega.toFixed(2)+' rad/s');f('wheels',sim.left.toFixed(2)+' / '+sim.right.toFixed(2));f('replans',sim.replans);f('fallbacks',sim.fallbacks);
     f('status',({ready:'Ready to navigate',running:'Mission in progress',paused:'Mission paused',arrived:'Goal reached',blocked:'No safe route · stopped'})[sim.status]);

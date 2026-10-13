@@ -1,18 +1,19 @@
-# RoboNav Lab v1.2 design
+# RoboNav Lab v1.3 architecture
 
-Maintainer: Tanishk Singhal. Dependency-free offline runtime; engine and DOM adapter remain separate.
+Maintainer: Tanishk Singhal. Runtime remains dependency-free and offline-capable.
 
-1. core.js owns five planner definitions and eight deterministic environment definitions.
-2. index.html supplies the selectable options; tests require exact parity with engine catalogs.
-3. Physical occupancy feeds LiDAR and circular collision checks unchanged.
-4. Hard occupancy expands obstacles by radius + margin. Soft penalties use distance outside that envelope.
-5. Five graph searches share safe neighbours and weighted edge reporting. Only A* and Dijkstra guarantee minimum weighted graph cost. BFS minimizes steps. Weighted A* and greedy are approximate.
-6. Waypoints or guarded pursuit generate wheel commands; exact constant-command integration advances the circular robot at 1/60 s.
-7. app.js renders layers, compares every planner, and exports settings with version 2. Legacy maps use defaults for missing fields.
-8. benchmark.cjs derives its 80 mission combinations from the same catalogs.
+- navigation.js: log-odds OccupancyMapper, deterministic grid carts, world composition and dynamic-window command selection.
+- core.js: five global planners, eight environments, exact straight-edge geometry, hard/soft costmaps, three controllers, simulation state, metrics and pure comparison functions. CommonJS loads navigation.js; browser script order loads it first.
+- app.js: DOM controls, canvas views, telemetry, version-three JSON settings, CSV/PNG exports and experiment-worker lifecycle.
+- navigation-worker.js: imports the same engine and executes planner/controller experiments outside rendering. Unavailable workers use the same functions synchronously. Configuration/map changes invalidate stale results.
+- index.html and style.css: five actual planner options, eight environments, three controller options and responsive navigation controls. Tests check catalog parity and native-style select behavior.
 
-Default radius 0.24 m, margin 0.12 m, lookahead 0.9 m, soft band 1.5 m, weight 2, decay 2. Configuration changes reset the mission; edits replan. Costmap rebuilding occurs during reset/planning, outside rendering. Search timing excludes preprocessing. UI comparisons remain synchronous on the small fixed grid.
+World occupancy, observed occupancy and derived hard/soft costmaps are separate. Sensor planning and DWA receive only the observed navigation map. Ideal simulated LiDAR is the observation boundary. A final simulator-world motion guard prevents physical penetration without contributing hidden occupancy to planning. The display can independently show physical world or observed/unknown cells.
 
-There is no SLAM, local reactive planner, localization noise or ROS bridge. Straight-edge clearance is conservatively sampled, not an exact swept-body solver. Motion guards check sampled predicted poses.
+Mapping updates at 5 Hz; free rays and hit endpoints produce bounded log odds. Unknown policy is explicit. Replanning is debounced by 0.5 s. DWA samples 45 acceleration-limited command pairs, scores collision-free rollouts and stops if none are safe. Exact straight segments and conservative arc-sagitta chord envelopes validate circular motion. Global/local calculations stay synchronous on the small fixed grid; only long experiments use workers.
 
-GitHub Pages uses the Actions workflow, gated by tests and benchmarks. No accounts, secrets or external runtime APIs are required. See VALIDATION.md for test scope and IMPLEMENTATION-PLAN.md for remaining work.
+Grid carts are discrete, deterministic, one-cell obstacles on free horizontal tracks, advancing once per second. They reverse at track ends/new walls and yield to the robot envelope. This is a cooperative benchmark model, not independently moving crowd simulation. Moving cart occupancy is never baked into the base scene.
+
+The original transport status protocol is retained; a separate navigationState and reason provide replanning/recovery/failure detail. Waiting/replanning recovery is bounded and all missions have a 600 s simulation limit. Exports save reusable initial settings, not live mapper/pose state. Metrics distinguish body clearance, hard safety margin, geometric length and weighted graph cost.
+
+Defaults preserve known static scenes and the waypoint controller. Legacy imports default new navigation fields accordingly. GitHub Actions gates Pages deployment on syntax, tests and both benchmark suites. Python/websockets are optional development-only browser-check dependencies.

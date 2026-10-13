@@ -6,21 +6,21 @@ A browser-based mobile robotics workbench that connects grid planning to footpri
 
 ## Resume description
 
-Developed RoboNav Lab, an offline mobile robot simulator integrating five graph planners, configurable hard and graded soft inflation, differential-drive kinematics and guarded pure pursuit; evaluated navigation with repeatable scenarios, tracking RMSE and CSV telemetry.
+Developed RoboNav Lab, an offline mobile robot simulator integrating five graph planners, configurable hard/soft inflation, LiDAR occupancy mapping, differential-drive kinematics and three controllers including acceleration-window DWA; evaluated navigation with repeatable scenarios, tracking RMSE and CSV telemetry.
 
 ## Demonstration
 
 1. Compare all five planners on eight environments. Explain why A* and Dijkstra agree on optimal weighted graph cost, while approximate planners and BFS have different objectives.
 2. Increase the robot radius and explain configuration-space occupancy.
-3. Compare waypoint control and guarded pure pursuit using travel time and RMSE.
-4. Run a mission, insert an obstacle, and demonstrate replanning.
+3. Compare waypoints, guarded pursuit and DWA using time, RMSE, minimum clearance and acceleration.
+4. Switch to sensor mode, show unknown space being observed, enable grid carts and demonstrate replanning.
 5. Show an unsolvable map and explain the stop condition.
 6. Export the map/settings and results to reproduce the experiment.
 
 ## Technical discussion
 
-Be ready to derive the octile heuristic, differential-drive velocities and pursuit curvature. Explain why LiDAR is independent of planning in this known-map simulation, why the circle/radius model is a simplification, and why simulation results are not hardware validation. Describe your own development contributions accurately and understand the code you present.
+Be ready to derive the octile heuristic, differential-drive velocities and pursuit curvature. Explain how LiDAR updates observed occupancy while true pose remains known, why the circle/radius model is a simplification, and why simulation results are not hardware validation. Describe your own development contributions accurately and understand the code you present.
 
 ## Future work
 
-Wheel-odometry noise with estimation; dynamic obstacle prediction; configurable map resolution; acceleration limits; ROS2 integration and hardware experiments. These are roadmap items, not implemented capabilities.
+Wheel-odometry noise with estimation; independently moving obstacle prediction beyond yielding grid carts; configurable map resolution; acceleration limits; ROS2 integration and hardware experiments. These are roadmap items, not implemented capabilities.
