@@ -18,7 +18,7 @@
   const executeExperiment=data=>data.kind==='planners'?R.comparePlanners(data.map,data.settings):Object.keys(R.CONTROLLERS).map(controller=>R.benchmarkMission(data.map,data.algorithm,data.speed,{...data.settings,controller}));
   function completeExperiment(id,result,error){const job=pendingExperiments.get(id);if(!job)return;pendingExperiments.delete(id);job.button.disabled=false;if(job.revision!==experimentRevision)return;if(error){toast(error);return;}job.done(result);}
   try{if(typeof Worker!=='undefined'){
-    experimentWorker=new Worker('./navigation-worker.js');
+    experimentWorker=new Worker('./navigation-worker.js?v='+S.VERSION);
     experimentWorker.onmessage=({data})=>completeExperiment(data.id,data.result,data.error);
     experimentWorker.onerror=()=>{experimentWorker.terminate();experimentWorker=null;for(const [id,job] of pendingExperiments){try{completeExperiment(id,executeExperiment(job.data));}catch(error){completeExperiment(id,null,error.message);}}};
   }}catch{experimentWorker=null;}

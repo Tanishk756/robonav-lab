@@ -7,6 +7,7 @@
 - Added versioned experiment report JSON, keyboard skip link and live sharing feedback.
 - Added contributor, conduct, security, extension, issue/PR and release documentation.
 - Added deterministic offline ZIP/checksum packaging and a minimal static-site build.
+- Added versioned runtime asset URLs to avoid mixing release scripts after updates.
 - Added PR browser CI, extracted-package checks and verification of the actual Pages deployment.
 - Added sharing round trips, input rejection, UI/gallery/startup regressions and real shared-page reload checks.
 

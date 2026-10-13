@@ -17,7 +17,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     env:
-      ROBONAV_BROWSER_OUTPUT: ${{ runner.temp }}/robonav-browser
+      ROBONAV_BROWSER_OUTPUT: /tmp/robonav-browser
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -54,7 +54,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: browser-evidence
-          path: ${{ runner.temp }}/robonav-browser/
+          path: /tmp/robonav-browser/
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ROBONAV_BASE_URL: ${{ needs.deploy.outputs.page_url }}
-      ROBONAV_BROWSER_OUTPUT: ${{ runner.temp }}/robonav-live
+      ROBONAV_BROWSER_OUTPUT: /tmp/robonav-live
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -104,4 +104,4 @@ jobs:
         if: always()
         with:
           name: live-browser-evidence
-          path: ${{ runner.temp }}/robonav-live/
+          path: /tmp/robonav-live/

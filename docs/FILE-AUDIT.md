@@ -37,7 +37,7 @@ Reviewed 2026-10-13. All 45 source/artifact files reviewed; Git internals, ignor
 | `docs/planner-results.csv` | Matching 120-row current static benchmark snapshot. |
 | `docs/test-output.txt` | Current captured 49-test passing output. |
 | `index.html` | v1.4 gallery, sharing/report controls, keyboard skip link, live feedback and community links. |
-| `navigation-worker.js` | Uses the same engine for off-thread experiment comparisons. |
+| `navigation-worker.js` | Uses the same engine for off-thread experiments, with release-versioned import URLs. |
 | `navigation.js` | Scan-only log odds, free-space stale clearing, deterministic yielding grid carts and acceleration-window velocity rollouts. |
 | `requirements-dev.txt` | Optional bounded websockets development dependency; no runtime package dependency. |
 | `sample-results.csv` | 120 passing static benchmark rows, byte-identical to documentation copy. |

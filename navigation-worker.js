@@ -1,5 +1,5 @@
 /* Expensive comparisons run outside the viewport when workers are available. */
-importScripts('navigation.js','core.js');
+importScripts('navigation.js'+self.location.search,'core.js'+self.location.search);
 self.onmessage=({data})=>{
   try {
     const R=self.RoboNav;
