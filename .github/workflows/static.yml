@@ -15,15 +15,15 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       ROBONAV_BROWSER_OUTPUT: /tmp/robonav-browser
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.11'
       - name: Install development browser dependency
@@ -34,32 +34,43 @@ jobs:
           node --check navigation-worker.js
           node --check core.js
           node --check sharing.js
+          node --check showcase.js
           node --check app.js
-          node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs
+          node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs tests/showcase.test.cjs
           node benchmark.cjs > /tmp/robonav-benchmark.csv
           node benchmark-navigation.cjs > /tmp/robonav-navigation.csv
       - name: Test native browser interface and sharing
         run: python tests/browser_smoke.py
+      - name: Cross-browser acceptance
+        env:
+          ROBONAV_TEST_BROWSERS: chromium,firefox
+          ROBONAV_CROSS_OUTPUT: /tmp/robonav-cross
+        run: |
+          python -m pip install -r requirements-browsers.txt
+          python -m playwright install --with-deps chromium firefox
+          python tests/cross_browser.py
       - name: Build offline package and static site
         run: python scripts/package_release.py
       - name: Test the extracted offline package
         run: |
-          python -c "import os,zipfile; from pathlib import Path; zipfile.ZipFile(next(Path('dist').glob('*.zip'))).extractall(Path(os.environ['RUNNER_TEMP'])/'robonav-package')"
+          python -c "import os,zipfile; from pathlib import Path; zipfile.ZipFile(next(Path('dist').glob('robonav-lab-*.zip'))).extractall(Path(os.environ['RUNNER_TEMP'])/'robonav-package')"
           ROBONAV_SOURCE_ROOT="$RUNNER_TEMP/robonav-package/robonav-lab" ROBONAV_FILE_TEST=1 python tests/browser_smoke.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: robonav-release-and-site
           path: dist/
           include-hidden-files: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: browser-evidence
-          path: /tmp/robonav-browser/
+          path: |
+            /tmp/robonav-browser/
+            /tmp/robonav-cross/
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pages: write
@@ -70,26 +81,26 @@ jobs:
     outputs:
       page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: robonav-release-and-site
           path: dist/
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6.0.0
+      - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: dist/site/
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5.0.1
 
   verify-live:
     needs: deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       ROBONAV_BASE_URL: ${{ needs.deploy.outputs.page_url }}
       ROBONAV_BROWSER_OUTPUT: /tmp/robonav-live
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.11'
       - run: python -m pip install -r requirements-dev.txt
@@ -100,7 +111,7 @@ jobs:
             sleep 10
           done
           exit 1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: live-browser-evidence

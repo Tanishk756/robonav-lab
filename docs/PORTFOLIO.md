@@ -24,3 +24,5 @@ Be ready to derive the octile heuristic, differential-drive velocities and pursu
 ## Future work
 
 Wheel-odometry noise with estimation; independently moving obstacle prediction beyond yielding grid carts; configurable map resolution; acceleration limits; ROS2 integration and hardware experiments. These are roadmap items, not implemented capabilities.
+
+The v1.5 demo can be presented using a guided mission, separate navigation challenges, returned-route overlays, synchronized controller playback and recorded event replay. Launch videos explain successful replanning, route-cost tradeoffs and intentional doorway failure. Result cards are simulated outcomes rather than verified competition scores.

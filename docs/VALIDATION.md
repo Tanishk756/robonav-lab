@@ -1,20 +1,20 @@
-# Validation - RoboNav Lab v1.4
+# Validation - RoboNav Lab v1.5
 
 Date: 2026-10-13. Runtime: Node.js 24.19.0 on Windows.
 
 ## Automated results
 
-**49 tests passed; zero failures.** Captured output: [test-output.txt](test-output.txt).
+**55 tests passed; zero failures.** Captured output: [test-output.txt](test-output.txt).
 
 ```
-node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs
+node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs tests/showcase.test.cjs
 node benchmark.cjs
 node benchmark-navigation.cjs
 ```
 
 JavaScript syntax and Git diff whitespace checks also pass. GitHub Actions validates pull requests, runs all tests and both benchmarks, checks the real browser interface and extracted offline package, then gates main-branch Pages deployment. A final job checks the deployed URL and share reload.
 
-The static benchmark covers eight environments x five planners x three controllers at 1.6 m/s and default hard/soft settings: **120/120 arrived (retained v1.3 engine snapshot; navigation engine is unchanged in v1.4)**. [sample-results.csv](../sample-results.csv) and [planner-results.csv](planner-results.csv) are identical saved results, including body clearance, angular travel, acceleration and recovery diagnostics.
+The static benchmark covers eight environments x five planners x three controllers at 1.6 m/s and default hard/soft settings: **120/120 arrived (retained v1.3 engine snapshot; navigation engine is unchanged in v1.5)**. [sample-results.csv](../sample-results.csv) and [planner-results.csv](planner-results.csv) are identical saved results, including body clearance, angular travel, acceleration and recovery diagnostics.
 
 The navigation benchmark covers Open floor, Warehouse and Four rooms x known/sensor map x static/moving carts, with A* + DWA: **12/12 arrived (retained v1.3 navigation snapshot)**. Results: [navigation-results.csv](navigation-results.csv). This is a deterministic cooperative-cart smoke matrix, not evidence of general crowd avoidance.
 
@@ -53,6 +53,16 @@ Global replanning and DWA still run synchronously on the fixed small grid. Long 
 
 ## Packaging and public deployment
 
-scripts/package_release.py packages tracked source into dist/robonav-lab-1.4.0.zip, writes SHA256SUMS.txt and stages a minimal static site. ZIP timestamps and text line endings are normalized. Local validation checks reproducible hashes and opens the extracted offline page in an actual browser. CI repeats the extracted-package check. The actual public URL is verified after deployment, rather than inferring success from git push.
+scripts/package_release.py packages tracked source into dist/robonav-lab-1.5.0.zip, writes SHA256SUMS.txt and stages a minimal static site. ZIP timestamps and text line endings are normalized. Local validation checks reproducible hashes and opens the extracted offline page in an actual browser. CI repeats the extracted-package check. The actual public URL is verified after deployment, rather than inferring success from git push.
 
 A release is considered published only after Actions and live verification succeed. The versioned release contains the offline ZIP and checksum; see RELEASE-CHECKLIST.md.
+
+## Pre-promotion experience validation
+
+Guided demo regression verifies automatic obstacle insertion, route comparisons, pause and replay capture. Challenge regressions complete all four categories and reject changed scenes or invalid run contexts. Share tokens preserve a challenge ID. Recorder tests verify live-state isolation, observed snapshots, terminal events and the 6000-frame bound. Counter tests verify default-off, bounded local storage and opt-out clearing. Planner paths and controller traces are the actual engine outputs.
+
+Actual Edge, Chrome and Firefox checks passed on Windows: guided mission, replay/live isolation, native PNG and HTML downloads, challenge share reload, simple view and desktop/emulated-mobile rendering. Evidence: [cross-browser-results.json](cross-browser-results.json), [Firefox desktop](firefox-desktop.png). CI additionally runs Playwright Chromium and Firefox. Physical phones and first-time human studies have not been executed; [the protocol](../launch/USER-TESTING.md) records that limitation explicitly.
+
+The launch kit includes three roughly 12-second H.264/yuv420p MP4s with burned-in captions and SRT files. [Media validation](../launch/media-validation.json) records actual duration, dimensions, bitrate and size. The replanning clip uses recorded engine motion; the cost clip illustrates planned routes; the doorway clip shows an actual failed/reachable planning pair. Prepared social drafts were not posted. HN text is deliberately a personal-writing checklist under current guidelines; the DEV draft discloses AI assistance.
+
+Usage counters are optional local data, not public analytics or measured reach. Local challenge results are not anti-cheat credentials. Replay stores bounded classified observations/poses rather than a resumable world or an externally executable program. Main replay records dynamic occupancy; small comparison canvases show trajectories over the base static scene.

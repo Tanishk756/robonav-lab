@@ -1,4 +1,4 @@
-# RoboNav Lab v1.4 architecture
+# RoboNav Lab v1.5 architecture
 
 Maintainer: Tanishk Singhal. Runtime remains dependency-free and offline-capable.
 
@@ -21,3 +21,9 @@ Defaults preserve known static scenes and the waypoint controller. Legacy import
 sharing.js owns application version, strict experiment normalization, share-format version 1 and gallery metadata. It bit-packs the fixed occupancy, then encodes bounded UTF-8 JSON as base64url. Imported strings are displayed through textContent; no shared code executes. app.js uses the same normalizer for file imports, gallery loads and shared URLs. Settings schema version 3 remains independent of the application/share-format versions.
 
 The public workflow separates PR validation, main-branch Pages deployment and live verification. It checks native browser selectors, worker results, sharing and an extracted offline ZIP. scripts/package_release.py packages tracked source deterministically and stages only seven runtime assets plus .nojekyll for hosting. Optional browser dependencies never enter runtime delivery. See EXTENDING.md and CONTRIBUTING.md for extension contracts and contribution workflow.
+
+showcase.js owns separate challenge categories, fixed-scene validation, a bounded recorder/view adapter, local-only opt-in counters and canvas result layouts. app.js records live poses/scenes without changing the core physics. Replay renders a snapshot adapter; it does not step the live engine. Snapshot scenes are deduplicated, with at most 6000 frames and corresponding bounded scene/event storage.
+
+Comparison results now include actual planner paths and controller telemetry trajectories. Small controller canvases play independent runs on a shared recorded-time axis over the base static map. Large main replay also captures observed and physical occupancy changes. Report exports reset the visual replay selection before rendering, keeping current live metrics and image consistent.
+
+The guided demo uses the same public run/edit/compare controls with timed steps. Challenge scoring requires completion and the unchanged fixed scene, separate category constraints and a valid fresh-run context. Scores are local and not trusted remote credentials. Usage counters are opt-in, local-only, bounded and clear on opt out.

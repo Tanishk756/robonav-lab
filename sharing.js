@@ -1,7 +1,7 @@
 /* Versioned, bounded experiment links. Occupancy is bit-packed, never executed. */
 (function(root){
   'use strict';
-  const VERSION='1.4.0',PUBLIC_URL='https://tanishk756.github.io/robonav-lab/';
+  const VERSION='1.5.0',PUBLIC_URL='https://tanishk756.github.io/robonav-lab/';
   const toBase64=bytes=>typeof Buffer!=='undefined'?Buffer.from(bytes).toString('base64'):btoa(String.fromCharCode(...bytes));
   const fromBase64=text=>typeof Buffer!=='undefined'?Uint8Array.from(Buffer.from(text,'base64')):Uint8Array.from(atob(text),c=>c.charCodeAt(0));
   const pack=bytes=>toBase64(bytes).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -16,12 +16,13 @@
     const map=R.validateMap(data),robot=R.config(data.robot??{}),algorithm=data.algorithm??'astar',speed=data.speed??1.6;
     if(!Object.hasOwn(R.PLANNERS,algorithm))throw Error('Invalid planner.');
     if(!Number.isFinite(speed)||speed<.4||speed>3)throw Error('Invalid speed.');
-    return {...map,settingsVersion:3,robot,algorithm,speed};
+    const challenge=data.challenge;if(challenge!==undefined&&!['fit','shortest','fast','safe'].includes(challenge))throw Error('Unknown challenge.');
+    return {...map,settingsVersion:3,robot,algorithm,speed,...(challenge?{challenge}:{})};
   }
   function encode(R,data){
     const e=validateExperiment(R,data),bytes=new Uint8Array(96);
     e.cells.forEach((value,i)=>{if(value)bytes[i>>3]|=1<<(i%8);});
-    const compact={v:1,n:e.name,c:pack(bytes),s:[e.start.x,e.start.y],g:[e.goal.x,e.goal.y],r:e.robot,a:e.algorithm,p:e.speed};
+    const compact={v:1,n:e.name,c:pack(bytes),s:[e.start.x,e.start.y],g:[e.goal.x,e.goal.y],r:e.robot,a:e.algorithm,p:e.speed,...(e.challenge?{h:e.challenge}:{})};
     return pack(new TextEncoder().encode(JSON.stringify(compact)));
   }
   function decode(R,token){
@@ -30,7 +31,7 @@
     if(c.v!==1)throw Error('Unsupported share version.');
     const bytes=unpack(c.c,128);if(bytes.length!==96)throw Error('Invalid shared map size.');
     if(!Array.isArray(c.s)||c.s.length!==2||!Array.isArray(c.g)||c.g.length!==2)throw Error('Invalid shared endpoints.');
-    return validateExperiment(R,{version:1,w:32,h:24,name:c.n,cells:Array.from({length:768},(_,i)=>(bytes[i>>3]>>(i%8))&1),start:{x:c.s[0],y:c.s[1]},goal:{x:c.g[0],y:c.g[1]},robot:c.r,algorithm:c.a,speed:c.p});
+    return validateExperiment(R,{version:1,w:32,h:24,name:c.n,cells:Array.from({length:768},(_,i)=>(bytes[i>>3]>>(i%8))&1),start:{x:c.s[0],y:c.s[1]},goal:{x:c.g[0],y:c.g[1]},robot:c.r,algorithm:c.a,speed:c.p,...(c.h!==undefined?{challenge:c.h}:{})});
   }
   const EXAMPLES={
     warehouse:{title:'First mission',description:'Known warehouse map with A* and waypoints. Run, pause, then compare all five planners.',map:'warehouse',settings:{}},

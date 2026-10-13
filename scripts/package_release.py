@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 VERSION=re.search(r"const VERSION='([^']+)'",(ROOT/'sharing.js').read_text(encoding='utf-8')).group(1)
 if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+",VERSION):
     raise ValueError('Invalid release version')
-RUNTIME=['index.html','style.css','navigation.js','core.js','sharing.js','app.js','navigation-worker.js']
+RUNTIME=['index.html','style.css','navigation.js','core.js','sharing.js','showcase.js','app.js','navigation-worker.js']
 files=subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).decode('utf-8').split('\0')
 files=sorted(name for name in files if name)
 if not set(RUNTIME+['LICENSE','README.md','START-HERE.txt']).issubset(files):
@@ -38,3 +38,25 @@ for name in RUNTIME+['.nojekyll']:
     (site/name).write_bytes((ROOT/name).read_bytes())
 print(str(archive))
 print(digest)
+
+media=ROOT/'launch'
+if media.exists():
+    (site/'launch').mkdir(exist_ok=True)
+    for source in media.iterdir():
+        if source.is_file() and source.suffix in ['.mp4','.png','.gif','.srt']:
+            (site/'launch'/source.name).write_bytes(source.read_bytes())
+
+if media.exists():
+    kit=output/f'robonav-launch-kit-{VERSION}.zip'
+    with zipfile.ZipFile(kit,'w',compression=zipfile.ZIP_DEFLATED) as bundle:
+        for source in sorted(media.iterdir()):
+            if not source.is_file() or source.is_symlink():
+                continue
+            info=zipfile.ZipInfo('launch/'+source.name,date_time=(1980,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED;info.external_attr=0o100644<<16
+            data=source.read_bytes()
+            if source.suffix in ['.md','.srt','.json']:
+                data=data.decode('utf-8').replace('\r\n','\n').encode('utf-8')
+            bundle.writestr(info,data)
+    kit_digest=hashlib.sha256(kit.read_bytes()).hexdigest()
+    (output/'SHA256SUMS.txt').write_text(digest+'  '+archive.name+'\n'+kit_digest+'  '+kit.name+'\n',encoding='utf-8',newline='\n')
+    print(str(kit))

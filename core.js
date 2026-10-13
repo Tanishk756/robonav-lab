@@ -269,14 +269,14 @@
   function benchmarkMission(map,algorithm,speed,options){
     const sim=new Simulation(map,algorithm,speed,options);sim.start();
     for(let i=0;i<36000&&sim.status==='running';i++)sim.step(1/60);
-    return {controller:sim.settings.controller,status:sim.status==='running'?'timeout':sim.status,time:sim.time,distance:sim.distance,rmse:sim.rmse,fallbacks:sim.fallbacks,minClearance:sim.minClearance,angularTravel:sim.angularTravel,peakAcceleration:sim.peakAcceleration,replans:sim.replans,recoveries:sim.recoveryAttempts,reason:sim.reason};
+    return {controller:sim.settings.controller,status:sim.status==='running'?'timeout':sim.status,time:sim.time,distance:sim.distance,rmse:sim.rmse,fallbacks:sim.fallbacks,minClearance:sim.minClearance,angularTravel:sim.angularTravel,peakAcceleration:sim.peakAcceleration,replans:sim.replans,recoveries:sim.recoveryAttempts,reason:sim.reason,trajectory:sim.telemetry.map(p=>({time:p.time,x:p.x,y:p.y,theta:p.theta}))};
   }
   function comparePlanners(map,settings={}){
     const cfg=config(settings),clearance=cfg.radius+cfg.margin,grid=buildCostmap(map,cfg),results=[];
     for(const algorithm of Object.keys(PLANNERS)){
       plan(grid,map.start,map.goal,algorithm,clearance,map);const times=[];let p;
       for(let i=0;i<25;i++){p=plan(grid,map.start,map.goal,algorithm,clearance,map);times.push(p.ms);}
-      times.sort((a,b)=>a-b);results.push({algorithm,cost:Number.isFinite(p.cost)?p.cost:null,length:Number.isFinite(p.length)?p.length:null,expanded:p.expanded.length,ms:times[12],buildMs:grid.buildMs,status:p.path.length?'Reachable':'No route'});
+      times.sort((a,b)=>a-b);results.push({algorithm,path:p.path,cost:Number.isFinite(p.cost)?p.cost:null,length:Number.isFinite(p.length)?p.length:null,expanded:p.expanded.length,ms:times[12],buildMs:grid.buildMs,status:p.path.length?'Reachable':'No route'});
     }return results;
   }
   const api={CONTROLLERS,comparePlanners,...N,PLANNERS,ENVIRONMENTS,makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,buildCostmap,obstacleDistance,segmentClear,config,pursuitTarget,benchmarkMission};

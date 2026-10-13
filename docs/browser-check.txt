@@ -1,2 +1,2 @@
 Chromium CDP integration test
-PASS (http:): 5 planners, 8 environments, 3 controllers, 40 native selections, 6 gallery examples, share encoding, comparisons, sensor DWA with moving carts and observed map. HTTP mode additionally verifies workers and viewport responsiveness. Shared-link page reload passed.
+PASS (http:): 5 planners, 8 environments, 3 controllers, 40 native selections, 6 gallery examples, share encoding, comparisons, sensor DWA with moving carts and observed map. HTTP mode additionally verifies workers and viewport responsiveness. Shared-link page reload passed; guided demo, challenge, replay isolation and simple-view controls passed.

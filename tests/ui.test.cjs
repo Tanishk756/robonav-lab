@@ -8,7 +8,7 @@ function boot(extra={}){
   class Element{
     constructor(id=''){this.id=id;this.textContent='';this.children=[];this.style={};this.dataset={};this.events={};this.checked=true;this.disabled=false;this.hidden=false;this.classList={toggle(){}};}
     set value(v){this._value=this.options&&!this.options.some(o=>o.value===String(v))?'':v;}get value(){return this._value;}
-    getContext(){return drawing;}append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}setAttribute(k,v){this[k]=v;}
+    getContext(){return drawing;}append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}setAttribute(k,v){this[k]=v;}getAttribute(k){return this[k];}
     addEventListener(k,v){this.events[k]=v;}click(){this.onclick?.();if(this.download)downloads.push(this.download);}focus(){}setPointerCapture(){}
     showModal(){this.open=true;}close(){this.open=false;}getBoundingClientRect(){return {left:0,top:0,width:960,height:720};}toDataURL(){return 'data:image/png,';}
   }
@@ -16,10 +16,10 @@ function boot(extra={}){
   for(const match of html.matchAll(/<select id="([^"]+)">([\s\S]*?)<\/select>/g)){nodes.get(match[1]).options=[...match[2].matchAll(/<option value="([^"]+)">/g)].map(o=>({value:o[1]}));}
   nodes.get('example').value='warehouse';nodes.get('algorithm').value='astar';nodes.get('speed').value='1.6';nodes.get('scenario').value='warehouse';
   for(const [id,value] of Object.entries({controller:'waypoint',radius:'0.24',margin:'0.12',lookahead:'0.9',softBand:'1.5',costWeight:'2',costDecay:'2',navigation:'known',unknownPolicy:'optimistic'}))nodes.get(id).value=value;
-  nodes.get('movingObstacles').checked=false;nodes.get('showObserved').checked=false;
+  nodes.get('challenge').value='fit';nodes.get('replayTime').value='0';nodes.get('comparisonTime').value='0';nodes.get('usageOptIn').checked=false;nodes.get('movingObstacles').checked=false;nodes.get('showObserved').checked=false;
   const buttons=['wall','erase','start','goal'].map(t=>{const b=new Element();b.dataset.tool=t;return b;});
   const document={getElementById:id=>{assert.ok(nodes.has(id),'unknown DOM id '+id);return nodes.get(id);},querySelectorAll:()=>buttons,createElement:()=>new Element(),createTextNode:t=>t,addEventListener:(k,v)=>handlers[k]=v};
-  const context={window:{RoboNav:require('../core.js'),RoboNavSharing:require('../sharing.js'),location:{protocol:'file:',hash:'',href:'file:///index.html'}},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:blob=>{blobs.push(blob);return ''},revokeObjectURL(){}},console,...extra};
+  const context={window:{RoboNav:require('../core.js'),RoboNavSharing:require('../sharing.js'),RoboNavShowcase:require('../showcase.js'),location:{protocol:'file:',hash:'',href:'file:///index.html'}},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:blob=>{blobs.push(blob);return ''},revokeObjectURL(){}},console,...extra};
   vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8'),context);
   return {nodes,raf,buttons,downloads,handlers,blobs};
 }
@@ -101,7 +101,7 @@ test('new planner selections and environments work and import/export preserves p
 
 test('real HTML select options exactly match engine planner and environment catalogs',()=>{
   const R=require('../core.js');
-  for(const [id,catalog] of [['algorithm',R.PLANNERS],['scenario',R.ENVIRONMENTS],['controller',R.CONTROLLERS],['example',require('../sharing.js').EXAMPLES]]){
+  for(const [id,catalog] of [['algorithm',R.PLANNERS],['scenario',R.ENVIRONMENTS],['controller',R.CONTROLLERS],['example',require('../sharing.js').EXAMPLES],['challenge',require('../showcase.js').CHALLENGES]]){
     const select=html.match(new RegExp('<select id="'+id+'">([\\s\\S]*?)</select>'));
     assert.ok(select,'missing '+id);const values=[...select[1].matchAll(/<option value="([^"]+)">/g)].map(m=>m[1]);
     assert.deepEqual(values,Object.keys(catalog));assert.equal(new Set(values).size,values.length);
@@ -147,13 +147,34 @@ test('gallery loads sensor settings and sharing preserves a custom experiment',a
   assert.equal(n.get('navigation').value,'sensor');assert.equal(n.get('controller').value,'dwa');assert.equal(n.get('showObserved').checked,true);
   await n.get('shareExperiment').onclick();const link=n.get('shareLink').value;assert.ok(link.startsWith('https://tanishk756.github.io/robonav-lab/#experiment='));
   const e=require('../sharing.js').decode(require('../core.js'),link.split('#experiment=')[1]);assert.equal(e.robot.navigation,'sensor');
-  n.get('downloadReport').click();const report=JSON.parse(await blobs.at(-1).text());assert.equal(report.version,'1.4.0');assert.equal(report.experiment.robot.controller,'dwa');
+  n.get('downloadReport').click();const report=JSON.parse(await blobs.at(-1).text());assert.equal(report.version,'1.5.0');assert.equal(report.experiment.robot.controller,'dwa');
 });
 
 test('shared links load on startup and malformed links leave a usable default scene',()=>{
   const S=require('../sharing.js'),R=require('../core.js'),token=S.encode(R,S.example(R,'carts'));
-  const valid=boot({window:{RoboNav:R,RoboNavSharing:S,location:{protocol:'https:',hostname:'tanishk756.github.io',href:S.PUBLIC_URL+'#experiment='+token,hash:'#experiment='+token}}});
+  const valid=boot({window:{RoboNav:R,RoboNavSharing:S,RoboNavShowcase:require('../showcase.js'),location:{protocol:'https:',hostname:'tanishk756.github.io',href:S.PUBLIC_URL+'#experiment='+token,hash:'#experiment='+token}}});
   assert.equal(valid.nodes.get('navigation').value,'sensor');assert.equal(valid.nodes.get('movingObstacles').checked,true);
-  const bad=boot({window:{RoboNav:R,RoboNavSharing:S,location:{protocol:'https:',hostname:'tanishk756.github.io',href:S.PUBLIC_URL,hash:'#experiment=bad'}}});
+  const bad=boot({window:{RoboNav:R,RoboNavSharing:S,RoboNavShowcase:require('../showcase.js'),location:{protocol:'https:',hostname:'tanishk756.github.io',href:S.PUBLIC_URL,hash:'#experiment=bad'}}});
   assert.match(bad.nodes.get('toast').textContent,/Shared link rejected/);assert.equal(bad.nodes.get('status').textContent,'Ready to navigate');
+});
+
+
+test('guided demo injects an obstacle, compares routes and pauses with recorded replay',()=>{
+  const {nodes:n,raf,downloads}=boot();n.get('startDemo').click();
+  assert.equal(n.get('status').textContent,'Mission in progress');
+  for(let i=0;i<420;i++)raf.shift()(i*1000/60);
+  assert.equal(n.get('status').textContent,'Mission paused');assert.ok(Number(n.get('replans').textContent)>0);
+  assert.equal(n.get('results').children.length,5);assert.match(n.get('demoText').textContent,/Demo complete/);
+  assert.ok(Number(n.get('replayTime').max)>10);const pose=n.get('poseX').textContent;
+  n.get('replayTime').value='0';n.get('replayTime').oninput();raf.shift()(8000);assert.match(n.get('replayLabel').textContent,/Replay/);
+  n.get('exitReplay').click();raf.shift()(8200);assert.equal(n.get('poseX').textContent,pose);
+  n.get('downloadCard').click();n.get('downloadHtml').click();assert.ok(downloads.includes('robonav-result-card.png'));assert.ok(downloads.includes('robonav-report.html'));
+});
+
+test('challenge settings are shareable and counters require explicit opt in',async()=>{
+  const {nodes:n,blobs}=boot();n.get('challenge').value='safe';n.get('loadChallenge').click();assert.equal(n.get('margin').value,.3);
+  await n.get('shareExperiment').onclick();const shared=require('../sharing.js').decode(require('../core.js'),n.get('shareLink').value.split('#experiment=')[1]);assert.equal(shared.challenge,'safe');
+  n.get('exportUsage').click();assert.deepEqual(JSON.parse(await blobs.at(-1).text()).counts,{});
+  n.get('usageOptIn').checked=true;n.get('usageOptIn').onchange();await n.get('shareExperiment').onclick();n.get('exportUsage').click();assert.equal(JSON.parse(await blobs.at(-1).text()).counts.share,1);
+  n.get('usageOptIn').checked=false;n.get('usageOptIn').onchange();n.get('exportUsage').click();assert.deepEqual(JSON.parse(await blobs.at(-1).text()).counts,{});
 });

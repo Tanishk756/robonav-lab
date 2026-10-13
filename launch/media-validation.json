@@ -1,0 +1,29 @@
+{
+  "replan": {
+    "duration_s": "12.000000",
+    "width": 1280,
+    "height": 900,
+    "codec": "h264",
+    "pixel_format": "yuv420p",
+    "bit_rate": "1184191",
+    "size_bytes": 1776287
+  },
+  "costs": {
+    "duration_s": "11.966667",
+    "width": 1280,
+    "height": 900,
+    "codec": "h264",
+    "pixel_format": "yuv420p",
+    "bit_rate": "1184118",
+    "size_bytes": 1771244
+  },
+  "fit": {
+    "duration_s": "12.000000",
+    "width": 1280,
+    "height": 900,
+    "codec": "h264",
+    "pixel_format": "yuv420p",
+    "bit_rate": "1184185",
+    "size_bytes": 1776278
+  }
+}

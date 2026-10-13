@@ -1,0 +1,24 @@
+{
+  "results": [
+    {
+      "browser": "edge",
+      "version": "155.0.4283.45",
+      "result": "passed",
+      "coverage": "guided mission, replay isolation, PNG/HTML downloads, challenge-share reload, simple view and desktop/emulated-mobile render"
+    },
+    {
+      "browser": "chrome",
+      "version": "154.0.8037.98",
+      "result": "passed",
+      "coverage": "guided mission, replay isolation, PNG/HTML downloads, challenge-share reload, simple view and desktop/emulated-mobile render"
+    },
+    {
+      "browser": "firefox",
+      "version": "155.0",
+      "result": "passed",
+      "coverage": "guided mission, replay isolation, PNG/HTML downloads, challenge-share reload, simple view and desktop/emulated-mobile render"
+    }
+  ],
+  "physical_mobile_tested": false,
+  "first_time_humans_tested": false
+}

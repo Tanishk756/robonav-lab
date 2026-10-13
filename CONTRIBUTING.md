@@ -7,7 +7,7 @@ Welcome. Small fixes, reproducible failure scenarios, documentation, accessibili
 Clone the repository and open index.html, or serve it with `python -m http.server 8000`. The runtime has no package installation. Node.js 20+ runs the engine tests; CI uses Node 24.
 
 ```
-node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs
+node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs tests/showcase.test.cjs
 node benchmark.cjs
 node benchmark-navigation.cjs
 ```
@@ -30,3 +30,5 @@ See [extension guide](docs/EXTENDING.md), [architecture](docs/DESIGN.md), [valid
 ## Starter issues
 
 See [starter tasks](docs/STARTER-ISSUES.md) for scoped proposals. These are suggested tasks, not claims that someone is assigned or that implementation is complete.
+
+Cross-browser checks: install requirements-browsers.txt, run python -m playwright install chromium firefox, then set ROBONAV_TEST_BROWSERS=chromium,firefox and run python tests/cross_browser.py. The local edge,chrome,firefox option uses installed Windows executables and the Playwright Firefox build. Launch assets can be regenerated with scripts/create_launch_assets.py, requiring ffmpeg and a compatible Chromium executable.

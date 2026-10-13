@@ -1,0 +1,2 @@
+# Optional cross-browser development checks only.
+playwright==1.63.0

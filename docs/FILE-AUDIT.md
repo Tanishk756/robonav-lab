@@ -1,53 +1,76 @@
-# File audit - RoboNav Lab v1.4
+# File audit - RoboNav Lab v1.5
 
-Reviewed 2026-10-13. All 45 source/artifact files reviewed; Git internals, ignored dist/ packages and caches excluded. Navigation engine and its saved 120+12 benchmark snapshots are unchanged from v1.3.
+Reviewed 2026-10-13. 68 tracked/new source and media files inspected; ignored dist/ tools, browser profiles and generated packages excluded.
 
 | File | Review result |
 | --- | --- |
 | `.github/ISSUE_TEMPLATE/bug_report.yml` | Structured reproduction, release/browser and expected/actual behavior fields. |
 | `.github/ISSUE_TEMPLATE/feature_request.yml` | Problem, acceptance criteria and alternatives fields. |
 | `.github/PULL_REQUEST_TEMPLATE.md` | Focused behavior, validation, UI, schema and attribution checklist. |
-| `.github/workflows/static.yml` | PR validation, real browser checks, deterministic packaging, extracted-ZIP test, Pages deployment and post-deploy live verification. |
+| `.github/workflows/static.yml` | Pinned Ubuntu/current maintained actions, 55 regressions, Chromium/Firefox acceptance, package and live gates. |
 | `.gitignore` | Generated dist/ release assets and Python caches excluded; existing secret exclusions preserved. |
 | `.nojekyll` | Preserved static-host marker. |
-| `CHANGELOG.md` | v1.4 sharing, community, packaging and deployment release notes. |
+| `CHANGELOG.md` | v1.5 experience, media, cross-browser and local-counter release notes. |
 | `CODE_OF_CONDUCT.md` | Community behavior and maintainer enforcement/reporting expectations. |
-| `CONTRIBUTING.md` | Setup, checks, contribution expectations and extension links. |
+| `CONTRIBUTING.md` | Five Node test files and optional cross-browser/video development instructions. |
 | `LICENSE` | MIT terms and attribution preserved unchanged. |
-| `README.md` | Public simulator/download/contribution links, sharing/gallery/report behavior, packaging and honest limits. |
+| `README.md` | v1.5 guided/challenge/replay instructions, preview GIF, launch links and honest analytics/browser limitations. |
 | `RELEASE-CHECKLIST.md` | Local/package/live validation, tags, checksum and release publication requirements. |
-| `SECURITY.md` | Private GitHub vulnerability reporting, supported-build policy and untrusted-link scope. |
-| `START-HERE.txt` | Seven runtime files, six examples and public/offline sharing instructions. |
-| `app.js` | Unified experiment loading, custom-map share URLs, hash loading, manual/clipboard copy, JSON reports and stale-link clearing. |
+| `SECURITY.md` | Local challenge/replay/report/counter trust boundaries and retained private reporting policy. |
+| `START-HERE.txt` | Eight runtime assets and the guided-demo/challenge/replay/export workflow. |
+| `app.js` | Guided steps, fixed-scene challenge contexts, replay isolation, overlay/comparison playback, PNG/HTML exports and local counters. |
 | `benchmark-navigation.cjs` | Separate 12-case known/sensor/static/dynamic A*+DWA matrix. |
 | `benchmark.cjs` | Eight environments x five planners x three controllers; expanded physical/navigation metrics. |
-| `core.js` | Observed-map selection, exact edges, curved guards, DWA, bounded recovery, state reasons and metrics. |
-| `docs/DESIGN.md` | Share codec, normalizer, CI/package boundaries and retained navigation architecture. |
+| `core.js` | Existing physics retained; comparison results now include actual planner paths and bounded telemetry trajectories. |
+| `docs/DESIGN.md` | Showcase/replay/counter boundaries and actual comparison trajectory semantics. |
 | `docs/EXTENDING.md` | Planner/controller/environment/gallery contracts and format validation expectations. |
-| `docs/FILE-AUDIT.md` | Current complete file-by-file review record. |
-| `docs/IMPLEMENTATION-PLAN.md` | Sharing/community release marked delivered; replay, libraries, localization and larger maps remain explicit future work. |
-| `docs/PORTFOLIO.md` | Updated public sharing/report demonstration. |
+| `docs/FILE-AUDIT.md` | Complete v1.5 source/media review record. |
+| `docs/IMPLEMENTATION-PLAN.md` | Delivered experience separated from unexecuted human/mobile checks and future navigation work. |
+| `docs/PORTFOLIO.md` | Updated demonstration opportunities and limits. |
 | `docs/RELEASE-1.4.0.md` | Versioned release notes, validation and remaining limitations. |
+| `docs/RELEASE-1.5.0.md` | Release behavior, evidence and remaining physical/human verification. |
 | `docs/STARTER-ISSUES.md` | Scoped contributor task suggestions with acceptance criteria; no claim of assigned work. |
-| `docs/VALIDATION.md` | 49 tests, retained unchanged-engine benchmark snapshots and real/package/live validation scope. |
-| `docs/browser-check.txt` | Real Chromium gallery/share/worker checks and fresh shared-page reload evidence. |
-| `docs/browser-mobile.png` | Current mobile screenshot, inspected. |
-| `docs/browser-smoke.png` | Current desktop screenshot, inspected. |
+| `docs/VALIDATION.md` | 55 tests, three real browser engines, native exports, bounded replay and media validation scope. |
+| `docs/browser-check.txt` | Real Chromium guided/replay/report/share/worker evidence. |
+| `docs/browser-mobile.png` | Current emulated mobile rendering. |
+| `docs/browser-smoke.png` | Current desktop rendering. |
+| `docs/cross-browser-results.json` | Actual Edge/Chrome/Firefox versions and pass scope; human/physical-mobile flags false. |
+| `docs/firefox-desktop.png` | Actual Firefox rendering evidence. |
 | `docs/navigation-results.csv` | 12/12 sensor/dynamic benchmark arrivals. |
 | `docs/planner-results.csv` | Matching 120-row current static benchmark snapshot. |
-| `docs/test-output.txt` | Current captured 49-test passing output. |
-| `index.html` | v1.4 gallery, sharing/report controls, keyboard skip link, live feedback and community links. |
+| `docs/test-output.txt` | Current 55-test passing output. |
+| `index.html` | Intro/demo/simple view, challenge catalog, replay/event controls, comparison canvases, report exports, feedback and social metadata. |
+| `launch/COMMUNITY-POSTS.md` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/DEV-ARTICLE.md` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/LINKEDIN.md` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/MEASUREMENT.md` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/README.md` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/USER-TESTING.md` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/costs.mp4` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/costs.srt` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/demo.gif` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/fit.mp4` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/fit.srt` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/media-validation.json` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/poster.png` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/replan.mp4` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
+| `launch/replan.srt` | Original launch material; checked scope, captions/encoding or platform-specific guidance; not automatically posted. |
 | `navigation-worker.js` | Uses the same engine for off-thread experiments, with release-versioned import URLs. |
 | `navigation.js` | Scan-only log odds, free-space stale clearing, deterministic yielding grid carts and acceleration-window velocity rollouts. |
+| `requirements-browsers.txt` | Pinned optional Playwright cross-browser dependency; no runtime effect. |
 | `requirements-dev.txt` | Optional bounded websockets development dependency; no runtime package dependency. |
 | `sample-results.csv` | 120 passing static benchmark rows, byte-identical to documentation copy. |
-| `scripts/package_release.py` | Deterministic tracked-source ZIP/checksum plus seven-asset minimal static site; validated using extracted files. |
-| `sharing.js` | Bounded bit-packed share format, validated JSON normalization, app version and six gallery definitions. |
-| `style.css` | Gallery/sharing layout and mobile selector positions; actual rendering reviewed. |
-| `tests/browser_smoke.py` | Portable Chromium discovery, hosted/package/live targets, gallery/share checks, synchronized fresh-document reload and external CI evidence output. |
+| `scripts/create_launch_assets.py` | Reproducible captioned engine demos and MP4/GIF generation using development tools only. |
+| `scripts/package_release.py` | Eight runtime assets, hosted media and deterministic offline/launch-kit ZIPs with SHA-256 checksums. |
+| `sharing.js` | v1.5 and optional validated challenge IDs in backward-compatible share payloads. |
+| `showcase.js` | Separate challenge objectives, bounded immutable replay scenes, canvas layouts and opt-in counter implementation. |
+| `style.css` | Responsive launch experience, sticky guide captions, simple controls and side-by-side comparisons. |
+| `tests/browser_smoke.py` | Actual guided/demo/export/comparison checks and live/package target support. |
 | `tests/core.test.cjs` | Original engine and global planner regressions retained and passed. |
+| `tests/cross_browser.py` | Native Edge/Chrome/Firefox exports, replay and challenge/share checks plus emulated viewports. |
 | `tests/navigation.test.cjs` | Scan isolation, stale clearing, exact geometry, DWA limits including speed reductions, cart behavior, sensor missions and bounded failure coverage. |
 | `tests/sharing.test.cjs` | Compact round trips, custom occupancy, invalid/oversized versions/settings and intended gallery failures. |
-| `tests/ui.test.cjs` | Gallery/share/report/startup regressions plus retained navigation/worker/catalog tests. |
+| `tests/showcase.test.cjs` | All challenge categories, invalid contexts, replay bounds/isolation and usage opt-out. |
+| `tests/ui.test.cjs` | Guided steps, shareable challenges, replay isolation and export/counter wiring regressions. |
 
-Local evidence: 49 passing tests, native gallery and selector checks, worker responsiveness, compact sharing, fresh shared-URL reload and versioned reports. Packaging and live deployment are gated by the release workflow and release checklist. Existing engine benchmark snapshots are labeled as retained evidence. No claim of hardware readiness or exhaustive accessibility/browser certification is made.
+55 regressions pass. Real Edge/Chrome/Firefox acceptance, replay isolation, native PNG/HTML downloads and media metadata are recorded. Existing 120+12 navigation snapshots remain labeled historical physics evidence. Physical mobile and first-time participant checks remain honest external follow-up tasks, and no social posts were sent.

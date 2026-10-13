@@ -55,10 +55,10 @@ async def check(port, site_port):
           const el=id=>document.getElementById(id),R=window.RoboNav;
           const assert=(value,message)=>{if(!value)throw Error(message);};
           const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-          const until=async condition=>{for(let i=0;i<400;i++){if(condition())return;await wait(25);}throw Error('asynchronous result timeout');};
+          const until=async condition=>{for(let i=0;i<800;i++){if(condition())return;await wait(25);}throw Error('asynchronous result timeout');};
           assert(el('algorithm').options.length===5,'five planners');assert(el('scenario').options.length===8,'eight environments');
           assert(el('controller').options.length===3,'three controllers');
-          assert(document.querySelector('.version').textContent.includes('v1.4'),'wrong deployed version');
+          assert(document.querySelector('.version').textContent.includes('v1.5'),'wrong deployed version');
           assert(el('example').options.length===6,'six examples');
           for(const id of Object.keys(window.RoboNavSharing.EXAMPLES)){el('example').value=id;el('loadExample').click();assert(el('example').value===id,'gallery selection');}
           el('example').value='discovery';el('loadExample').click();
@@ -66,6 +66,13 @@ async def check(port, site_port):
           assert(shared.includes('#experiment='),'share link missing');
           const decoded=window.RoboNavSharing.decode(R,shared.split('#experiment=')[1]);assert(decoded.robot.navigation==='sensor','shared settings');
           assert(document.querySelector('.skip-link'),'keyboard skip link');
+          assert(el('challenge').options.length===4,'four challenge categories');assert(!el('usageOptIn').checked,'tracking enabled by default');
+          el('startDemo').click();await until(()=>el('demoText').textContent.includes('Demo complete'));assert(Number(el('replayTime').max)>10,'replay did not record');
+          const liveX=el('poseX').textContent;el('replayTime').value='0';el('replayTime').dispatchEvent(new Event('input'));await wait(150);assert(el('replayLabel').textContent.includes('Replay'),'replay scrub');el('exitReplay').click();await wait(150);assert(el('poseX').textContent===liveX,'replay mutated live pose');
+          el('simpleView').click();assert(document.body.classList.contains('simple-view'),'simple view');el('simpleView').click();
+          el('challenge').value='fit';el('loadChallenge').click();assert(el('status').textContent.includes('No safe route'),'doorway failure');
+          el('demoBanner').hidden=true;
+          el('example').value='warehouse';el('loadExample').click();
           for(const environment of Object.keys(R.ENVIRONMENTS)){
             el('scenario').value=environment;el('scenario').dispatchEvent(new Event('change'));
             for(const planner of Object.keys(R.PLANNERS)){el('algorithm').value=planner;el('algorithm').dispatchEvent(new Event('change'));assert(el('status').textContent==='Ready to navigate',environment+' '+planner);}
@@ -76,6 +83,12 @@ async def check(port, site_port):
           await until(()=>!el('compare').disabled);assert(el('results').children.length===5,'comparison rows');
           el('compareControllers').click();assert(el('compareControllers').disabled||location.protocol==='file:','controller worker did not start');
           await until(()=>!el('compareControllers').disabled);assert(el('controllerResults').children.length===3,'three controller rows');
+          el('playComparison').click();await wait(200);assert(parseFloat(el('comparisonLabel').textContent)>0,'controller playback');
+          el('comparisonTime').value='2';el('comparisonTime').dispatchEvent(new Event('input'));assert(el('comparisonLabel').textContent.startsWith('2.0'),'comparison scrub');
+          const nativeClick=HTMLAnchorElement.prototype.click,captured=[];HTMLAnchorElement.prototype.click=function(){if(this.download)captured.push({name:this.download,url:this.href});else nativeClick.call(this);};
+          el('downloadCard').click();el('downloadHtml').click();HTMLAnchorElement.prototype.click=nativeClick;
+          assert(captured.some(x=>x.name.endsWith('.png')&&x.url.startsWith('data:image/png')&&x.url.length>1000),'result PNG');
+          const report=await (await fetch(captured.find(x=>x.name.endsWith('.html')).url)).text();assert(report.includes('Reproduce the initial experiment')&&report.includes('1.5.0'),'readable report');
           watch=false;if(location.protocol!=='file:')assert(frames>1,'viewport blocked during worker comparison');
           el('scenario').value='warehouse';el('scenario').dispatchEvent(new Event('change'));
           for(const [id,value] of [['navigation','sensor'],['controller','dwa']]){el(id).value=value;el(id).dispatchEvent(new Event('change'));}
@@ -111,7 +124,7 @@ async def check(port, site_port):
             else:
                 state = await command("Runtime.evaluate", {"expression":"JSON.stringify({url:location.href,ready:document.readyState,navigation:document.getElementById('navigation')?.value,moving:document.getElementById('movingObstacles')?.checked,toast:document.getElementById('toast')?.textContent})","returnByValue":True})
                 raise RuntimeError("Shared experiment did not reload: "+str(state))
-            report += " Shared-link page reload passed."
+            report += " Shared-link page reload passed; guided demo, challenge, replay isolation and simple-view controls passed."
         await command("Runtime.evaluate", {"expression":"document.getElementById('toast').hidden=true;document.querySelector('.robot-config').open=true;document.getElementById('showObserved').checked=true;window.scrollTo(0,0)"})
         if os.environ.get("ROBONAV_FILE_TEST"):
             print(report)

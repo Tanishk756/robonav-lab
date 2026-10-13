@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.0 - 2026-10-13
+
+- Added first-visit introduction, automatic guided replanning demo and simple view.
+- Added four separate challenge categories, validated fixed-scene outcomes and challenge-preserving share links.
+- Added returned-route overlays and synchronized recorded controller trajectory playback.
+- Added bounded mission replay with observations, poses, route changes and event markers.
+- Added 1200x900 PNG result cards, readable self-contained HTML reports and contextual explanations.
+- Added opt-in local-only usage counters with explicit export and opt-out clearing.
+- Added three captioned H.264 launch clips, README preview GIF, social metadata and editable launch guidance.
+- Added actual Edge/Chrome/Firefox download/replay/challenge checks and Chromium/Firefox CI.
+- Preserved explicit human-participant and physical-device testing follow-ups; no social posts were sent.
+
+
 ## 1.4.0 - 2026-10-13
 
 - Added compact custom-map experiment links, validated URL loading and clipboard/manual-copy sharing.

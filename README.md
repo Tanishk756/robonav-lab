@@ -2,9 +2,25 @@
 
 ### Tanishk Singhal - Robotics & Automation
 
-**v1.4** - An offline mobile robotics workbench connecting global planning, robot geometry, LiDAR mapping and reactive motion control. JavaScript/HTML Canvas, no runtime packages or backend, MIT licensed.
+**v1.5** - An offline mobile robotics workbench connecting global planning, robot geometry, LiDAR mapping and reactive motion control. JavaScript/HTML Canvas, no runtime packages or backend, MIT licensed.
 
 [Source](https://github.com/Tanishk756/robonav-lab) | [Validation](docs/VALIDATION.md) | [Release notes](CHANGELOG.md) | [Roadmap](docs/IMPLEMENTATION-PLAN.md)
+
+[![Watch obstacle-triggered replanning](launch/demo.gif)](https://tanishk756.github.io/robonav-lab/launch/replan.mp4)
+
+## Start in 30 seconds
+
+Press **Start guided demo**. The robot starts moving, a new obstacle appears, the engine replans, and compared planner routes overlay the map. The mission pauses after about six simulation seconds so you can scrub its replay. Step captions stay visible while scrolling. Use **Simple view** for a smaller control set.
+
+Try one of four **Navigation challenges**: fit through a doorway, find a shortest grid route, beat 35 simulation seconds, or maintain 30 cm body clearance. Categories are separate. Challenge links preserve the initial scene and challenge ID, not a trusted leaderboard score. Complete an unchanged known/static scene; changing the scene or manually replanning during a scored run invalidates that run. Configure the robot before starting a fresh attempt. Challenge outcomes are local educational results, not safety certification.
+
+Planner comparisons overlay actual returned routes with colors and different dash patterns. Controller comparisons provide synchronized recorded-trajectory playback and a shared time scrubber; these are independent runs from the same initial scene, displayed over the base static map. Dynamic-cart motion is recorded in the main replay, not the small comparison canvases.
+
+The main **Mission replay** stores poses, classified observed occupancy, seen masks, route changes, physical grid-cart occupancy and events at about 10 Hz. Scrub or click an event marker without moving the live robot. Recording is bounded to 6000 frames; a truncation notice appears if reached. It is recorded-frame playback, not arbitrary resumable simulation or localization.
+
+**Export result card PNG** creates a 1200 x 900 image with version, map, measurements and category. **Export readable HTML report** includes the map image, settings and comparisons with a reproducible link. Reports use the current live result even if a replay frame was selected. Use **Feedback / contribute** to submit a reproducible issue.
+
+[Launch kit: three captioned MP4s, editable posts and user-test protocol](launch/README.md)
 
 ## Try it and share
 
@@ -25,7 +41,7 @@ The URL fragment contains readable experiment data, not a private access token. 
 
 ## Run
 
-Open **index.html** in Edge, Chrome or Firefox after extracting the entire repository. Keep index.html, style.css, navigation.js, core.js, sharing.js, app.js and navigation-worker.js together. No installation or internet is needed to use it. Node.js 20+ is needed only for development checks.
+Open **index.html** in Edge, Chrome or Firefox after extracting the entire repository. Keep index.html, style.css, navigation.js, core.js, showcase.js, sharing.js, app.js and navigation-worker.js together. No installation or internet is needed to use it. Node.js 20+ is needed only for development checks.
 
 A static server enables worker-based experiments when local-file workers are restricted. With Python installed, run `python -m http.server 8000` and open `http://localhost:8000`. Direct file opening remains supported through a synchronous comparison fallback. Large fallback comparisons can temporarily pause the page.
 
@@ -99,12 +115,12 @@ Controls: Run/Pause/Resume, Reset, Plan route, wall/erase/start/goal editing, Bl
 ## Development and validation
 
 ```
-node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs
+node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs tests/showcase.test.cjs
 node benchmark.cjs
 node benchmark-navigation.cjs
 ```
 
-The regression suite has **49 passing tests**. The standard benchmark covers eight environments x five planners x three controllers: **120 missions**. [sample-results.csv](sample-results.csv) and [planner-results.csv](docs/planner-results.csv) are identical saved outputs. A separate **12-mission** [navigation benchmark](docs/navigation-results.csv) covers three environments, known/sensor maps and static/moving carts with A* + DWA. All saved missions arrived. Timing is machine-dependent.
+The regression suite has **55 passing tests**. The standard benchmark covers eight environments x five planners x three controllers: **120 missions**. [sample-results.csv](sample-results.csv) and [planner-results.csv](docs/planner-results.csv) are identical saved outputs. A separate **12-mission** [navigation benchmark](docs/navigation-results.csv) covers three environments, known/sensor maps and static/moving carts with A* + DWA. All saved missions arrived. Timing is machine-dependent.
 
 Optional real-browser integration: `python tests/browser_smoke.py` requires Python, the development-only websockets package and installed Edge; set ROBONAV_BROWSER for another compatible Chromium executable. It verifies actual selectors, worker comparisons with a responsive viewport, sensor/DWA/cart controls, and captures desktop/mobile screenshots. Set ROBONAV_FILE_TEST=1 to test direct offline opening. See [validation](docs/VALIDATION.md) for exact test scope and [file audit](docs/FILE-AUDIT.md).
 
@@ -112,12 +128,18 @@ Optional real-browser integration: `python tests/browser_smoke.py` requires Pyth
 
 No encoder noise, pose estimation, SLAM localization, motor/slip dynamics, configurable resolution, polygonal footprints, ROS connection or hardware validation. Sensor ranges are ideal. Moving carts yield and move discretely; there is no prediction of independently moving humans. Custom maps and every parameter combination are not exhaustively tested. Long missions retain growing telemetry arrays. The roadmap separates delivered navigation work from localization and map/footprint generalization.
 
-GitHub Pages uses the included Actions workflow. Pull requests run validation without publication. Main runs syntax checks, all tests, both benchmarks, real Chromium browser checks and an extracted-offline-package check before deployment. A separate job checks the actual deployed URL, worker responsiveness and share-link reload. Choose GitHub Actions as the Pages source and verify the **v1.4** badge after updates.
+GitHub Pages uses the included Actions workflow. Pull requests run validation without publication. Main runs syntax checks, all tests, both benchmarks, real Chromium browser checks and an extracted-offline-package check before deployment. A separate job checks the actual deployed URL, worker responsiveness and share-link reload. Choose GitHub Actions as the Pages source and verify the **v1.5** badge after updates.
 
 ## Community and releases
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [extension guide](docs/EXTENDING.md), [starter tasks](docs/STARTER-ISSUES.md), [security policy](SECURITY.md), [community conduct](CODE_OF_CONDUCT.md) and [release checklist](RELEASE-CHECKLIST.md). Bug/feature issue forms and a PR template are included. All contribution and runtime code remains MIT licensed.
 
-`python scripts/package_release.py` creates a deterministic, versioned offline ZIP, SHA-256 checksum and minimal static site from tracked source in dist/. Build after staging/committing new files. Zip metadata and UTF-8 text line endings are normalized; reproducibility assumes identical source bytes. Release tags identify the tested source. A generated ZIP is tested before publication. Replays, named browser libraries and cloud accounts are not part of this release.
+`python scripts/package_release.py` creates deterministic, versioned offline and launch-kit ZIPs, SHA-256 checksums and a minimal static site from tracked source in dist/. Build after staging/committing new files. Zip metadata and UTF-8 text line endings are normalized; reproducibility assumes identical source bytes. Release tags identify the tested source. A generated ZIP is tested before publication. Bounded mission replay is included. Named browser libraries and cloud accounts remain future work.
 
 MIT licensed. Copyright 2026 Tanishk Singhal. [GitHub](https://github.com/Tanishk756) | [Issues](https://github.com/Tanishk756/robonav-lab/issues)
+
+## Launch measurement and browser coverage
+
+Usage counting is off by default and optional. It stores only four counters on the current device: demo starts, mission completions, share actions and passed local challenges. Opting out clears them; export is explicit. No analytics requests, map contents, identifiers or URL fragments are sent to a tracking service. These local counts do not measure total public reach. See [measurement plan](launch/MEASUREMENT.md).
+
+Actual Edge, Chrome and Firefox checks cover guided missions, replay isolation, native PNG/HTML downloads, challenge-link reload, simple view and desktop/emulated-mobile layout. Optional cross-browser tests use `requirements-browsers.txt` and `python tests/cross_browser.py`; install Playwright browsers first. The CI matrix uses Chromium and Firefox. Physical phones and first-time human participants remain explicit follow-up work in [USER-TESTING.md](launch/USER-TESTING.md).

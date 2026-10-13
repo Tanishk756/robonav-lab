@@ -1,7 +1,10 @@
 # RoboNav Lab implementation status and roadmap
 
-## Delivered through v1.4
+## Delivered through v1.5
 
+- Guided demo, four separate challenge categories, route overlays, synchronized controller playback, bounded recorded replay and PNG/HTML result reports.
+- Captioned launch assets, editable channel drafts, social preview metadata and actual Edge/Chrome/Firefox checks.
+- Opt-in local counters; first-time human and physical-device protocols remain unexecuted follow-up work.
 - Account-free shared experiment URLs, custom-map encoding, six-example gallery and versioned report export.
 - Contributor/security/community guides, issue/PR templates, deterministic release packaging, PR browser tests and live deployment checks.
 - Five global planners and eight deterministic environments with shared hard/soft costmaps.
@@ -34,7 +37,7 @@ Acceptance: identical physical scenes behave consistently across resolutions; ro
 
 ## 4. Experiment management and integrations
 
-Add named in-browser experiment libraries, replays and multi-seed batch runs; JSON exports and compact shared URLs already save reusable initial-scene presets. Add success-rate plots, progress tracking and cancellation for long experiments. Broaden browser automation to file pickers, downloads and more viewports. Keep runtime dependency-free.
+Add named in-browser experiment libraries and multi-seed batch runs; bounded replay is now implemented; JSON exports and compact shared URLs already save reusable initial-scene presets. Add success-rate plots, progress tracking and cancellation for long experiments. Broaden browser automation to file pickers, downloads and more viewports. Keep runtime dependency-free.
 
 An optional ROS 2 adapter follows stable frames, units, timestamps and simulated disconnect-to-stop checks. It is separate future work, not implemented connectivity or hardware readiness.
 
