@@ -96,3 +96,48 @@ test('pure pursuit handles an inserted obstacle and repeated experiments are det
 test('invalid robot settings are rejected',()=>{
   for(const options of [{radius:NaN},{radius:2},{margin:-1},{lookahead:Infinity},{controller:'unknown'}])assert.throws(()=>R.config(options));
 });
+
+test('costmap penalties decay outside the hard envelope without changing occupancy or LiDAR',()=>{
+  const m=R.makeMap('empty');m.cells[12*m.w+15]=1;const before=m.cells.slice();
+  const settings={softBand:3,costWeight:4},grid=R.buildCostmap(m,settings);
+  assert.deepEqual(grid.cells,R.inflateMap(m,.36).cells);
+  assert.ok(grid.penalties[12*m.w+16]>grid.penalties[12*m.w+17]);
+  assert.ok(grid.penalties[12*m.w+17]>grid.penalties[12*m.w+18]);
+  assert.equal(grid.penalties[12*m.w+19],0);
+  assert.equal(R.obstacleDistance(m,16.5,12.5),.5);
+  assert.equal(R.raycast(m,18.5,12.5,Math.PI).distance,2.5);
+  assert.deepEqual(m.cells,before);
+  for(const options of [{softBand:-1},{costWeight:NaN},{costDecay:0}])assert.throws(()=>R.buildCostmap(m,options));
+});
+
+test('weighted planners agree and proximity costs prefer a wider route',()=>{
+  const m=R.makeMap('empty');m.start={x:3,y:10};m.goal={x:28,y:10};
+  for(let x=8;x<=23;x++)m.cells[11*m.w+x]=1;
+  const plain=R.plan(R.inflateMap(m,.36),m.start,m.goal,'astar',.36,m);
+  const grid=R.buildCostmap(m,{softBand:3,costWeight:10});
+  const a=R.plan(grid,m.start,m.goal,'astar',.36,m),d=R.plan(grid,m.start,m.goal,'dijkstra',.36,m);
+  assert.ok(Math.abs(a.cost-d.cost)<1e-9);assert.ok(a.length>plain.length);
+  assert.ok(a.path.some(p=>p.y<9));assert.ok(a.cost>=a.length);
+  for(let i=1;i<a.path.length;i++)assert.ok(R.segmentClear(m,R.center(a.path[i-1]),R.center(a.path[i]),.36));
+  for(const options of [{costWeight:0},{softBand:0}]){
+    const p=R.plan(R.buildCostmap(m,options),m.start,m.goal,'astar',.36,m);
+    assert.deepEqual(p.path,plain.path);assert.equal(p.cost,plain.cost);assert.equal(p.length,plain.cost);
+  }
+});
+
+test('costmap rebuild follows map edits and soft settings do not expand hard clearance',()=>{
+  const m=R.makeMap('empty'),a=R.buildCostmap(m,{costWeight:0,softBand:0});
+  const b=R.buildCostmap(m,{costWeight:20,softBand:5});assert.deepEqual(a.cells,b.cells);
+  const sim=new R.Simulation(m);sim.compute();const index=10*m.w+10;
+  assert.equal(sim.planningMap.penalties[index],0);
+  sim.map.cells[index+1]=1;sim.replan();assert.ok(sim.planningMap.penalties[index]>0);
+  assert.equal(sim.clearance,.36);assert.equal(sim.map.cells[index],0);
+});
+
+test('clearance checks reject tangency, corners and out-of-map footprints',()=>{
+  const m=R.makeMap('empty');m.cells[10*m.w+10]=1;
+  assert.equal(R.collides(m,11.5,10.5,.5),true);
+  assert.equal(R.collides(m,11.51,10.5,.5),false);
+  assert.equal(R.segmentClear(m,{x:11.2,y:9.8},{x:11.2,y:11.8},.3),false);
+  assert.equal(R.collides(m,-.1,12,.24),true);
+});

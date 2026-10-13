@@ -38,7 +38,7 @@
 
   /** Optimal 8-connected search; diagonals cannot pass between blocked corners. */
   function plan(m,start,goal,algorithm='astar',clearance=0,physicalMap=m) {
-    const began=now(),empty=()=>({path:[],cost:Infinity,expanded:[],ms:now()-began});
+    const began=now(),empty=()=>({path:[],cost:Infinity,length:Infinity,expanded:[],ms:now()-began});
     if(blocked(m,start.x,start.y)||blocked(m,goal.x,goal.y))return empty();
     const id=p=>p.y*m.w+p.x,s=id(start),t=id(goal),n=m.w*m.h;
     const g=new Float64Array(n).fill(Infinity),parent=new Int32Array(n).fill(-1),closed=new Uint8Array(n),open=new Heap(),expanded=[];
@@ -47,16 +47,16 @@
     while(open.a.length){
       const u=open.pop().id;if(closed[u])continue;closed[u]=1;
       const x=u%m.w,y=Math.floor(u/m.w);expanded.push({x,y});
-      if(u===t){const path=[];for(let v=t;v!==-1;v=parent[v])path.push({x:v%m.w,y:Math.floor(v/m.w)});return {path:path.reverse(),cost:g[t],expanded,ms:now()-began};}
+      if(u===t){const path=[];for(let v=t;v!==-1;v=parent[v])path.push({x:v%m.w,y:Math.floor(v/m.w)});path.reverse();const length=path.slice(1).reduce((sum,p,i)=>sum+dist(p,path[i]),0);return {path,cost:g[t],length,expanded,ms:now()-began};}
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
         if((!dx&&!dy)||blocked(m,x+dx,y+dy))continue;
         if(dx&&dy&&(blocked(m,x+dx,y)||blocked(m,x,y+dy)))continue;
         if(clearance>0&&!segmentClear(physicalMap,{x:x+.5,y:y+.5},{x:x+dx+.5,y:y+dy+.5},clearance))continue;
-        const v=(y+dy)*m.w+x+dx,c=g[u]+(dx&&dy?Math.SQRT2:1);
+        const v=(y+dy)*m.w+x+dx,c=g[u]+(dx&&dy?Math.SQRT2:1)*(1+(m.weight??0)*((m.penalties?.[u]??0)+(m.penalties?.[v]??0))/2);
         if(c<g[v]){g[v]=c;parent[v]=u;open.push({id:v,f:c+h(x+dx,y+dy)});}
       }
     }
-    return {path:[],cost:Infinity,expanded,ms:now()-began};
+    return {path:[],cost:Infinity,length:Infinity,expanded,ms:now()-began};
   }
 
   /** Grid DDA raycast: exact intersection with axis-aligned cell boundaries. */
@@ -76,7 +76,9 @@
   function lidar(m,pose,count=72,range=8){return Array.from({length:count},(_,i)=>raycast(m,pose.x,pose.y,pose.theta+i*2*Math.PI/count,range));}
 
   function collides(m,x,y,r=.24){
-    for(let j=Math.floor(y-r);j<=Math.floor(y+r);j++)for(let i=Math.floor(x-r);i<=Math.floor(x+r);i++){
+    // Include the cell on the lower side when the footprint is exactly tangent
+    // to an integer boundary. floor(x-r) alone would omit that occupied cell.
+    for(let j=Math.ceil(y-r)-1;j<=Math.floor(y+r);j++)for(let i=Math.ceil(x-r)-1;i<=Math.floor(x+r);i++){
       if(blocked(m,i,j)&&Math.hypot(x-clamp(x,i,i+1),y-clamp(y,j,j+1))<=r)return true;
     }return false;
   }
@@ -84,6 +86,25 @@
   // the circular footprint. Edge checks also validate travel between centres.
   function inflateMap(m,clearance){
     return {...m,cells:m.cells.map((value,i)=>value||Number(collides(m,i%m.w+.5,Math.floor(i/m.w)+.5,clearance)))};
+  }
+  // Exact point-to-occupied-rectangle distance within the requested band.
+  // Outside the map is occupied, even when imported maps omit boundary walls.
+  function obstacleDistance(m,x,y,limit=Infinity){
+    if(x<0||y<0||x>m.w||y>m.h)return 0;
+    let best=Math.min(limit,x,y,m.w-x,m.h-y);
+    for(let j=Math.max(0,Math.floor(y-best));j<=Math.min(m.h-1,Math.floor(y+best));j++)
+      for(let i=Math.max(0,Math.floor(x-best));i<=Math.min(m.w-1,Math.floor(x+best));i++)
+        if(m.cells[j*m.w+i])best=Math.min(best,Math.hypot(x-clamp(x,i,i+1),y-clamp(y,j,j+1)));
+    return best;
+  }
+  function buildCostmap(m,options={}){
+    const settings=config(options),clearance=settings.radius+settings.margin,began=now(),grid=inflateMap(m,clearance);
+    const penalties=m.cells.map((_,i)=>{
+      if(grid.cells[i]||settings.softBand===0)return 0;
+      const d=obstacleDistance(m,i%m.w+.5,Math.floor(i/m.w)+.5,clearance+settings.softBand);
+      return Math.pow(clamp(1-(d-clearance)/settings.softBand,0,1),settings.costDecay);
+    });
+    return {...grid,penalties,weight:settings.costWeight,buildMs:now()-began};
   }
   function segmentClear(m,a,b,clearance){
     const n=Math.max(1,Math.ceil(dist(a,b)/.05));
@@ -93,7 +114,7 @@
   function config(options={}){
     const number=(name,fallback,min,max)=>{const v=options[name]??fallback;if(!Number.isFinite(v)||v<min||v>max)throw Error(`Invalid ${name}: use ${min}–${max}.`);return v;};
     const controller=options.controller??'waypoint';if(!['waypoint','pursuit'].includes(controller))throw Error('Unknown controller.');
-    return {controller,radius:number('radius',.24,.15,.7),margin:number('margin',.12,0,.3),lookahead:number('lookahead',.9,.4,1.6)};
+    return {controller,radius:number('radius',.24,.15,.7),margin:number('margin',.12,0,.3),lookahead:number('lookahead',.9,.4,1.6),softBand:number('softBand',1.5,0,5),costWeight:number('costWeight',2,0,20),costDecay:number('costDecay',2,.25,8)};
   }
   function pursuitTarget(p,path,from,lookahead){
     let best={distance:Infinity,index:from,t:0,point:path[from]};
@@ -120,17 +141,17 @@
     constructor(map,algorithm='astar',speed=1.6,options={}){this.map=validateMap(map);this.algorithm=algorithm;this.speed=speed;this.settings=config(options);this.reset();}
     reset(){
       this.pose={...center(this.map.start),theta:0};this.status='ready';this.path=[];this.expanded=[];this.target=1;
-      this.time=0;this.distance=0;this.replans=0;this.planMs=0;this.cost=0;this.v=0;this.omega=0;this.left=0;this.right=0;
-      this.errorSq=0;this.samples=0;this.error=0;this.trail=[{...this.pose}];this.telemetry=[];this.lastSample=-1;this.events=[];this.progress=0;this.fallbacks=0;this.fallbackActive=false;this.carrot=null;this.planningMap=inflateMap(this.map,this.clearance);
+      this.time=0;this.distance=0;this.replans=0;this.planMs=0;this.cost=0;this.pathLength=0;this.v=0;this.omega=0;this.left=0;this.right=0;
+      this.errorSq=0;this.samples=0;this.error=0;this.trail=[{...this.pose}];this.telemetry=[];this.lastSample=-1;this.events=[];this.progress=0;this.fallbacks=0;this.fallbackActive=false;this.carrot=null;this.planningMap=buildCostmap(this.map,this.settings);
     }
     log(message){this.events.unshift({time:this.time,message});this.events=this.events.slice(0,30);}
     compute(){
-      this.planningMap=inflateMap(this.map,this.clearance);
-      if(collides(this.map,this.pose.x,this.pose.y,this.clearance)){this.path=[];this.expanded=[];this.cost=Infinity;this.planMs=0;this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('Robot footprint plus margin does not fit at its current position.');return false;}
+      this.planningMap=buildCostmap(this.map,this.settings);
+      if(collides(this.map,this.pose.x,this.pose.y,this.clearance)){this.path=[];this.expanded=[];this.cost=this.pathLength=Infinity;this.planMs=0;this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('Robot footprint plus margin does not fit at its current position.');return false;}
       const s={x:Math.floor(this.pose.x),y:Math.floor(this.pose.y)},p=plan(this.planningMap,s,this.map.goal,this.algorithm,this.clearance,this.map);
-      this.path=p.path;this.expanded=p.expanded;this.planMs=p.ms;this.cost=p.cost;this.target=0;this.progress=0;this.carrot=null;
+      this.path=p.path;this.expanded=p.expanded;this.planMs=p.ms;this.cost=p.cost;this.pathLength=p.length;this.target=0;this.progress=0;this.carrot=null;
       if(!p.path.length){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('No route to goal. Edit the map and plan again.');return false;}
-      this.log(`${this.algorithm==='astar'?'A*':'Dijkstra'}: ${p.expanded.length} cells expanded, ${p.cost.toFixed(2)} m route`);return true;
+      this.log(`${this.algorithm==='astar'?'A*':'Dijkstra'}: ${p.expanded.length} cells expanded, ${p.length.toFixed(2)} m route, ${p.cost.toFixed(2)} weighted cost`);return true;
     }
     start(){if(this.status==='arrived')this.reset();if(this.status==='paused'){this.status='running';return;}if(this.compute())this.status='running';}
     replan(){this.replans++;const wasRunning=this.status==='running';if(this.compute())this.status=wasRunning?'running':'ready';}
@@ -180,6 +201,6 @@
     for(let i=0;i<36000&&sim.status==='running';i++)sim.step(1/60);
     return {controller:sim.settings.controller,status:sim.status==='running'?'timeout':sim.status,time:sim.time,distance:sim.distance,rmse:sim.rmse,fallbacks:sim.fallbacks};
   }
-  const api={makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,segmentClear,config,pursuitTarget,benchmarkMission};
+  const api={makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,buildCostmap,obstacleDistance,segmentClear,config,pursuitTarget,benchmarkMission};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.RoboNav=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

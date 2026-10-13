@@ -3,7 +3,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
 function boot(){
-  const handlers={},raf=[],downloads=[],nodes=new Map();
+  const handlers={},raf=[],downloads=[],blobs=[],nodes=new Map();
   const drawing=new Proxy({}, {get:(_,k)=>k==='measureText'?()=>({width:10}):()=>{},set:()=>true});
   class Element{
     constructor(id=''){this.id=id;this.textContent='';this.children=[];this.style={};this.dataset={};this.events={};this.checked=true;this.disabled=false;this.hidden=false;this.classList={toggle(){}};}
@@ -13,16 +13,17 @@ function boot(){
   }
   for(const match of html.matchAll(/id="([^"]+)"/g))nodes.set(match[1],new Element(match[1]));
   nodes.get('algorithm').value='astar';nodes.get('speed').value='1.6';nodes.get('scenario').value='warehouse';
-  for(const [id,value] of Object.entries({controller:'waypoint',radius:'0.24',margin:'0.12',lookahead:'0.9'}))nodes.get(id).value=value;
+  for(const [id,value] of Object.entries({controller:'waypoint',radius:'0.24',margin:'0.12',lookahead:'0.9',softBand:'1.5',costWeight:'2',costDecay:'2'}))nodes.get(id).value=value;
   const buttons=['wall','erase','start','goal'].map(t=>{const b=new Element();b.dataset.tool=t;return b;});
   const document={getElementById:id=>{assert.ok(nodes.has(id),'unknown DOM id '+id);return nodes.get(id);},querySelectorAll:()=>buttons,createElement:()=>new Element(),createTextNode:t=>t,addEventListener:(k,v)=>handlers[k]=v};
-  const context={window:{RoboNav:require('../core.js')},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:()=>'',revokeObjectURL(){}},console};
+  const context={window:{RoboNav:require('../core.js')},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:blob=>{blobs.push(blob);return ''},revokeObjectURL(){}},console};
   vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8'),context);
-  return {nodes,raf,buttons,downloads,handlers};
+  return {nodes,raf,buttons,downloads,handlers,blobs};
 }
 test('UI initializes, runs, pauses, replans, compares, exports, and resets',()=>{
   const {nodes:n,raf,downloads}=boot();
   assert.equal(n.get('status').textContent,'Ready to navigate');
+  assert.match(n.get('inflationValue').textContent,/Obstacle inflation: 0\.36 m/);
   n.get('run').click();assert.equal(n.get('status').textContent,'Mission in progress');
   for(let i=0;i<180;i++)raf.shift()(i*1000/60);
   assert.notEqual(n.get('poseX').textContent,'3.50 m');
@@ -51,6 +52,7 @@ test('robot configuration resets mission and controller comparison exports resul
   n.get('compareControllers').click();assert.equal(n.get('controllerResults').children.length,2);
   n.get('exportControllers').click();assert.ok(downloads.includes('robonav-controller-comparison.csv'));
   n.get('radius').value='0.6';n.get('radius').onchange();assert.equal(n.get('exportControllers').disabled,true);
+  assert.match(n.get('inflationValue').textContent,/Robot safety radius: 0\.72 m/);
   n.get('radius').value='NaN';n.get('radius').onchange();assert.match(n.get('toast').textContent,/Invalid radius/);
 });
 test('map import restores robot settings and accepts legacy maps',async()=>{
@@ -60,4 +62,22 @@ test('map import restores robot settings and accepts legacy maps',async()=>{
   assert.equal(n.get('controller').value,'pursuit');assert.equal(n.get('radius').value,.4);assert.equal(n.get('algorithm').value,'dijkstra');
   await n.get('mapFile').onchange({target:{files:[{size:4000,text:async()=>JSON.stringify(R.makeMap('empty'))}],value:'legacy.json'}});
   assert.equal(n.get('controller').value,'waypoint');assert.equal(n.get('radius').value,.24);
+  assert.equal(n.get('softBand').value,1.5);assert.equal(n.get('costWeight').value,2);
+});
+
+test('costmap controls, weighted comparison and versioned settings round trip',async()=>{
+  const {nodes:n,blobs,raf}=boot();
+  n.get('costWeight').value='8';n.get('costWeight').onchange();
+  n.get('softBand').value='3';n.get('softBand').onchange();
+  n.get('costDecay').value='1';n.get('costDecay').onchange();
+  n.get('showCostmap').checked=false;raf.shift()(1000);
+  n.get('showCostmap').checked=true;raf.shift()(1017);
+  n.get('compare').click();assert.equal(n.get('results').children[0].children.length,6);
+  n.get('exportResults').click();const csv=await blobs.at(-1).text();assert.match(csv,/weighted_cost/);assert.match(csv,/costmap_build_ms/);
+  n.get('saveMap').click();const saved=JSON.parse(await blobs.at(-1).text());
+  assert.equal(saved.settingsVersion,2);assert.equal(saved.robot.costWeight,8);assert.equal(saved.robot.softBand,3);
+  n.get('costWeight').value='0';n.get('costWeight').onchange();
+  await n.get('mapFile').onchange({target:{files:[{size:5000,text:async()=>JSON.stringify(saved)}],value:'saved.json'}});
+  assert.equal(n.get('costWeight').value,8);assert.equal(n.get('softBand').value,3);assert.equal(n.get('costDecay').value,1);
+  n.get('costWeight').value='-1';n.get('costWeight').onchange();assert.match(n.get('toast').textContent,/Invalid costWeight/);assert.equal(n.get('costWeight').value,8);
 });

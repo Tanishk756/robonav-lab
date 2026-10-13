@@ -77,9 +77,23 @@ Dijkstra uses zero heuristic. Both search the same graph. Optimality refers to t
 
 The planning clearance is `radius + margin`. A cell centre is excluded if that circular footprint intersects an obstacle rectangle. Each candidate graph edge is also sampled at at most 0.05 m intervals with an additional 0.025 m numerical allowance. This is conservative sampled edge validation; it is not an exact general polygonal configuration-space solver.
 
-Inflation applies to planning only. LiDAR continues to see the original physical obstacle map. The displayed circle represents robot radius and its outer ring represents radius plus margin. At small radii, wheel/direction symbols are visual aids rather than a separate collision footprint.
+Amber halos show continuous obstacle inflation by radius plus margin, including walls and runtime edits; shaded amber cells show excluded robot-centre positions. The teal robot safety ring shows the same radius plus margin. The layer toggle controls both displays. These visualize the same clearance constraint, which is applied once in planning and motion guards. LiDAR continues to see the original physical obstacle map. At small radii, wheel/direction symbols are visual aids rather than a separate collision footprint.
 
-### Differential drive
+See [the implementation plan](docs/IMPLEMENTATION-PLAN.md) for the proposed costmap, mapping, local planning, localization, and validation stages.
+
+### Graded inflation costmap
+
+Robot configuration exposes a soft band (default 1.5 m), proximity weight (2), and decay exponent (2). These do not change the hard `radius + margin` clearance. For distance `d` from a free cell centre to the nearest physical obstacle rectangle or map exterior, the soft penalty is:
+
+`penalty = clamp(1 - (d - clearance) / softBand, 0, 1) ** costDecay`
+
+The penalty is zero beyond the band. Higher exponents concentrate the penalty near the hard envelope. Each graph edge costs `length * (1 + costWeight * (penaltyA + penaltyB) / 2)`. Both planners minimize this weighted cost; the octile distance remains an admissible A* heuristic. The soft layer is a cell-centre proximity preference, not a continuous safety guarantee. Hard segment and motion checks still enforce clearance independently.
+
+Purple shading represents increasing proximity penalty and has its own layer toggle. A zero weight or zero band restores distance-only planning. The planned-route metric and CSV `path_m` report geometric length; weighted cost is reported separately. Costmap build time is measured separately from search time. Derived layers rebuild on planning/map/configuration changes, outside the render loop.
+
+Map exports include `settingsVersion: 2` and all three cost settings. Older maps remain accepted; missing cost fields use the documented defaults. Planner/controller CSVs and `benchmark.cjs` include the cost settings. Unknown settings versions are rejected.
+
+### Differential-drive integration
 
 For wheel linear velocities `vL`, `vR` and wheel track `b = 0.42 m`:
 
@@ -98,7 +112,7 @@ This is a hybrid pursuit controller with conservative checks, not a formal colli
 ### Measurements
 
 - **Planning time:** latest search only; configuration-space construction is excluded. Comparison table uses one warm-up and 25 measured searches per algorithm.
-- **Planned route:** latest grid path cost. It changes after a replan.
+- **Planned route:** geometric length of the latest selected route in metres. It changes after a replan.
 - **Driven distance:** sum of integrated displacement.
 - **Tracking RMSE:** shortest distance to the current path polyline at every physics step. Samples before a replan remain in the mission total.
 - **Controller comparison:** independent runs from start, with a 600 simulation-second limit and no runtime insertions. It does not alter the live mission.
