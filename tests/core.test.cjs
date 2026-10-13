@@ -141,3 +141,43 @@ test('clearance checks reject tangency, corners and out-of-map footprints',()=>{
   assert.equal(R.segmentClear(m,{x:11.2,y:9.8},{x:11.2,y:11.8},.3),false);
   assert.equal(R.collides(m,-.1,12,.24),true);
 });
+
+
+test('all planners find safe routes on every deterministic environment',()=>{
+  for(const name of Object.keys(R.ENVIRONMENTS)){
+    const m=R.validateMap(R.makeMap(name)),grid=R.buildCostmap(m);
+    assert.deepEqual(m,R.validateMap(R.makeMap(name)));
+    const routes=Object.keys(R.PLANNERS).map(algorithm=>R.plan(grid,m.start,m.goal,algorithm,.36,m));
+    assert.ok(Math.abs(routes[0].cost-routes[1].cost)<1e-9,name+' optimal cost');
+    for(const route of routes){
+      assert.deepEqual(route.path[0],m.start);assert.deepEqual(route.path.at(-1),m.goal);
+      let cost=0,length=0;
+      for(let i=1;i<route.path.length;i++){
+        const a=route.path[i-1],b=route.path[i],step=R.dist(a,b);
+        assert.ok(step<=Math.SQRT2+1e-9);assert.ok(R.segmentClear(m,R.center(a),R.center(b),.36));
+        if(a.x!==b.x&&a.y!==b.y){assert.equal(R.blocked(grid,a.x,b.y),false);assert.equal(R.blocked(grid,b.x,a.y),false);}
+        length+=step;cost+=step*(1+grid.weight*(grid.penalties[a.y*m.w+a.x]+grid.penalties[b.y*m.w+b.x])/2);
+      }
+      assert.ok(Math.abs(route.cost-cost)<1e-9);assert.ok(Math.abs(route.length-length)<1e-9);
+      assert.ok(routes[4].path.length<=route.path.length,name+' BFS fewest steps');
+    }
+  }
+});
+
+test('every planner rejects unreachable goals and unknown choices fail explicitly',()=>{
+  const m=R.makeMap('empty');for(let y=1;y<23;y++)m.cells[y*m.w+16]=1;
+  const grid=R.buildCostmap(m);
+  for(const algorithm of Object.keys(R.PLANNERS)){
+    const p=R.plan(grid,m.start,m.goal,algorithm,.36,m);assert.equal(p.path.length,0);assert.equal(p.cost,Infinity);
+  }
+  assert.throws(()=>R.plan(m,m.start,m.goal,'typo'),/Unknown planner/);
+  assert.throws(()=>R.makeMap('typo'),/Unknown environment/);
+});
+
+test('all new environments and planners complete collision-free controller missions',()=>{
+  for(const name of ['office','slalom','rooms','loading'])for(const algorithm of Object.keys(R.PLANNERS))for(const controller of ['waypoint','pursuit']){
+    const sim=new R.Simulation(R.makeMap(name),algorithm,1.6,{controller});sim.start();
+    for(let i=0;i<36000&&sim.status==='running';i++){sim.step(1/60);assert.equal(R.collides(sim.map,sim.pose.x,sim.pose.y,sim.clearance),false);}
+    assert.equal(sim.status,'arrived',`${name} ${algorithm} ${controller}`);
+  }
+});

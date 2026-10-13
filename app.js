@@ -74,7 +74,7 @@
   $('loadMap').onclick=()=>$('mapFile').click();
   $('mapFile').onchange=async e=>{
     const file=e.target.files[0];if(!file)return;
-    try{if(file.size>100000)throw Error('Map file exceeds the 100 KB limit.');const data=JSON.parse(await file.text()),m=R.validateMap(data),settings=R.config(data.robot??{});if(data.settingsVersion!==undefined&&![1,2].includes(data.settingsVersion))throw Error('Unsupported settings version.');if(data.speed!==undefined&&(!Number.isFinite(data.speed)||data.speed<.4||data.speed>3))throw Error('Invalid speed.');if(data.algorithm!==undefined&&!['astar','dijkstra'].includes(data.algorithm))throw Error('Invalid planner.');for(const key of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay'])$(key).value=settings[key];$('speed').value=data.speed??1.6;$('speedValue').textContent=Number($('speed').value).toFixed(1)+' m/s';$('algorithm').value=data.algorithm??'astar';fresh(m);$('scenario').selectedIndex=-1;toast('Map imported. Ready to plan.');}
+    try{if(file.size>100000)throw Error('Map file exceeds the 100 KB limit.');const data=JSON.parse(await file.text()),m=R.validateMap(data),settings=R.config(data.robot??{});if(data.settingsVersion!==undefined&&![1,2].includes(data.settingsVersion))throw Error('Unsupported settings version.');if(data.speed!==undefined&&(!Number.isFinite(data.speed)||data.speed<.4||data.speed>3))throw Error('Invalid speed.');if(data.algorithm!==undefined&&!Object.hasOwn(R.PLANNERS,data.algorithm))throw Error('Invalid planner.');for(const key of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay'])$(key).value=settings[key];$('speed').value=data.speed??1.6;$('speedValue').textContent=Number($('speed').value).toFixed(1)+' m/s';$('algorithm').value=data.algorithm??'astar';fresh(m);$('scenario').selectedIndex=-1;toast('Map imported. Ready to plan.');}
     catch(err){toast('Import failed: '+err.message);}finally{e.target.value='';}
   };
   $('snapshot').onclick=()=>{renderMap();const a=document.createElement('a');a.download='robonav-navigation.png';a.href=canvas.toDataURL('image/png');a.click();};
@@ -82,13 +82,13 @@
   $('guide').addEventListener('click',e=>{if(e.target===$('guide')){const r=$('guide').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('guide').close();}});
   $('compare').onclick=()=>{
     results=[];
-    for(const algorithm of ['astar','dijkstra']){
+    for(const algorithm of Object.keys(R.PLANNERS)){
       // Warm-up is excluded; median attenuates timer noise and scheduling spikes.
       R.plan(sim.planningMap,sim.map.start,sim.map.goal,algorithm,sim.clearance,sim.map);
       const times=[];let p;for(let i=0;i<25;i++){p=R.plan(sim.planningMap,sim.map.start,sim.map.goal,algorithm,sim.clearance,sim.map);times.push(p.ms);}
       times.sort((a,b)=>a-b);results.push({algorithm,cost:Number.isFinite(p.cost)?p.cost:null,length:Number.isFinite(p.length)?p.length:null,expanded:p.expanded.length,ms:times[12],status:p.path.length?'Reachable':'No route'});
     }
-    $('results').replaceChildren();for(const r of results){const tr=document.createElement('tr');for(const value of [r.algorithm==='astar'?'A*':'Dijkstra',r.cost===null?'—':r.length.toFixed(2)+' m',r.cost===null?'No route':r.cost.toFixed(2),r.expanded,r.ms.toFixed(3)+' ms',r.status]){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('results').append(tr);}
+    $('results').replaceChildren();for(const r of results){const tr=document.createElement('tr');for(const value of [R.PLANNERS[r.algorithm],r.cost===null?'—':r.length.toFixed(2)+' m',r.cost===null?'No route':r.cost.toFixed(2),r.expanded,r.ms.toFixed(3)+' ms',r.status]){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('results').append(tr);}
     $('exportResults').disabled=false;toast('Comparison complete: 25 measured searches per planner.');
   };
   $('exportResults').onclick=()=>download('robonav-planner-comparison.csv',csv([

@@ -29,8 +29,8 @@ No installation, API keys, backend, internet connection, Python, Node.js, or GPU
 
 | Layer | Implementation |
 |---|---|
-| Environment | Editable 32 × 24 m occupancy grid; four deterministic maps |
-| Planning | A* with octile heuristic and Dijkstra; binary min-heap; 8-connected movement |
+| Environment | Editable 32 × 24 m occupancy grid; eight deterministic maps |
+| Planning | A*, Dijkstra, Weighted A*, Greedy best-first, BFS; 8-connected movement |
 | Robot geometry | Configurable circular radius and clearance margin; configuration-space occupancy |
 | Transition safety | Segment clearance checks between graph nodes; no diagonal corner cutting |
 | Control | Heading-based waypoint follower or guarded pure pursuit |
@@ -163,3 +163,22 @@ The repository includes `.nojekyll` and relative asset paths. In repository **Se
 [GitHub profile](https://github.com/Tanishk756) · [Report an issue](https://github.com/Tanishk756/robonav-lab/issues)
 
 MIT licensed. Copyright © 2026 Tanishk Singhal.
+
+
+## Additional planners and environments
+
+There are now five selectable planners. All use the same eight-connected graph, hard footprint clearance, diagonal corner constraints, and weighted-cost reporting.
+
+| Planner | Search priority | Objective / limitation |
+| --- | --- | --- |
+| A* | accumulated cost + octile distance | Minimum weighted graph cost |
+| Dijkstra | accumulated cost | Minimum weighted graph cost |
+| Weighted A* | accumulated cost + 1.8 times octile distance | More goal-directed search; no optimality guarantee in this implementation |
+| Greedy best-first | octile distance only | Goal-directed exploration; ignores accumulated cost when prioritizing expansion |
+| Breadth-first | number of graph edges | Fewest grid steps; does not minimize metres or proximity cost |
+
+Compare planners runs all five with one warm-up and 25 measured searches each. Route length and weighted cost remain separate so approximate planners can be compared fairly. These searches run synchronously on the fixed small grid; larger maps will require worker-based execution.
+
+The original Warehouse, Alternating corridors, Seeded clutter, and Open floor maps are joined by Office suites (walls, doors, desks), Slalom barriers (alternating long barriers), Four rooms (cross walls with doorways), and Loading dock (cargo blocks and bays). Every preset is deterministic and shares the existing protected start/goal locations. Narrow doorways can correctly become unreachable when the hard robot safety radius is increased.
+
+The development suite has 29 tests. The expanded benchmark covers all eight environments, five planners, and both controllers: 80 default-configuration missions. See docs/planner-results.csv for a local benchmark snapshot; timings depend on the machine.

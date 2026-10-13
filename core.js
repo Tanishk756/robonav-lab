@@ -11,6 +11,9 @@
   const blocked=(m,x,y)=>x<0||y<0||x>=m.w||y>=m.h||m.cells[y*m.w+x]===1;
   const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
 
+  const PLANNERS={astar:'A*',dijkstra:'Dijkstra',weighted:'Weighted A* (1.8)',greedy:'Greedy best-first',bfs:'Breadth-first'};
+  const ENVIRONMENTS={warehouse:'Warehouse aisles',corridors:'Alternating corridors',clutter:'Seeded clutter (731)',empty:'Open floor',office:'Office suites',slalom:'Slalom barriers',rooms:'Four rooms',loading:'Loading dock'};
+
   class Heap {
     constructor(){this.a=[];}
     push(n){let i=this.a.push(n)-1;while(i>0){const p=(i-1)>>1;if(this.a[p].f<=n.f)break;this.a[i]=this.a[p];i=p;}this.a[i]=n;}
@@ -18,6 +21,7 @@
   }
 
   function makeMap(name='warehouse') {
+    if(!Object.hasOwn(ENVIRONMENTS,name))throw Error('Unknown environment.');
     const w=32,h=24,cells=Array(w*h).fill(0);
     const rect=(x,y,rw,rh)=>{for(let j=y;j<y+rh;j++)for(let i=x;i<x+rw;i++)cells[j*w+i]=1;};
     rect(0,0,w,1);rect(0,h-1,w,1);rect(0,0,1,h);rect(w-1,0,1,h);
@@ -26,6 +30,21 @@
     if(name==='clutter'){
       let seed=731;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
       for(let i=0;i<65;i++){const x=4+Math.floor(random()*24),y=3+Math.floor(random()*18);rect(x,y,1,1);}
+    }
+    if(name==='office'){
+      for(const x of [10,21]){rect(x,1,1,22);for(const y of [5,17])cells[y*w+x]=0;}
+      for(const y of [8,15]){rect(1,y,9,1);rect(22,y,9,1);cells[y*w+5]=0;cells[y*w+26]=0;}
+      for(const x of [3,24])for(const y of [10,18])rect(x,y,2,2);
+    }
+    if(name==='slalom')for(const [x,y] of [[8,1],[15,7],[22,1]])rect(x,y,2,16);
+    if(name==='rooms'){
+      rect(16,1,1,22);rect(1,12,30,1);
+      for(const y of [5,6,17,18])cells[y*w+16]=0;
+      for(const x of [7,8,24,25])cells[12*w+x]=0;
+    }
+    if(name==='loading'){
+      for(const x of [7,14,21]){rect(x,6,4,3);rect(x,15,4,3);}
+      rect(27,6,4,2);rect(27,15,4,2);
     }
     return {version:1,name,w,h,cells,start:{x:3,y:3},goal:{x:28,y:20}};
   }
@@ -36,14 +55,16 @@
     return {version:1,name:typeof m.name==='string'?m.name.slice(0,60):'Imported map',w:m.w,h:m.h,cells:m.cells.slice(),start:{...m.start},goal:{...m.goal}};
   }
 
-  /** Optimal 8-connected search; diagonals cannot pass between blocked corners. */
+  /** Shared safe graph; only A-star and Dijkstra guarantee minimum weighted cost. */
   function plan(m,start,goal,algorithm='astar',clearance=0,physicalMap=m) {
+    if(!Object.hasOwn(PLANNERS,algorithm))throw Error('Unknown planner.');
     const began=now(),empty=()=>({path:[],cost:Infinity,length:Infinity,expanded:[],ms:now()-began});
     if(blocked(m,start.x,start.y)||blocked(m,goal.x,goal.y))return empty();
     const id=p=>p.y*m.w+p.x,s=id(start),t=id(goal),n=m.w*m.h;
-    const g=new Float64Array(n).fill(Infinity),parent=new Int32Array(n).fill(-1),closed=new Uint8Array(n),open=new Heap(),expanded=[];
+    const g=new Float64Array(n).fill(Infinity),parent=new Int32Array(n).fill(-1),closed=new Uint8Array(n),open=new Heap(),expanded=[],hops=new Float64Array(n).fill(Infinity);
     const h=(x,y)=>{const dx=Math.abs(x-goal.x),dy=Math.abs(y-goal.y);return algorithm==='dijkstra'?0:Math.max(dx,dy)+(Math.SQRT2-1)*Math.min(dx,dy);};
-    g[s]=0;open.push({id:s,f:h(start.x,start.y)});
+    const priority=(cost,heuristic,steps)=>algorithm==='greedy'?heuristic:algorithm==='weighted'?cost+1.8*heuristic:algorithm==='bfs'?steps:cost+heuristic;
+    g[s]=0;hops[s]=0;open.push({id:s,f:priority(0,h(start.x,start.y),0)});
     while(open.a.length){
       const u=open.pop().id;if(closed[u])continue;closed[u]=1;
       const x=u%m.w,y=Math.floor(u/m.w);expanded.push({x,y});
@@ -53,7 +74,8 @@
         if(dx&&dy&&(blocked(m,x+dx,y)||blocked(m,x,y+dy)))continue;
         if(clearance>0&&!segmentClear(physicalMap,{x:x+.5,y:y+.5},{x:x+dx+.5,y:y+dy+.5},clearance))continue;
         const v=(y+dy)*m.w+x+dx,c=g[u]+(dx&&dy?Math.SQRT2:1)*(1+(m.weight??0)*((m.penalties?.[u]??0)+(m.penalties?.[v]??0))/2);
-        if(c<g[v]){g[v]=c;parent[v]=u;open.push({id:v,f:c+h(x+dx,y+dy)});}
+        if(closed[v])continue;
+        if(algorithm==='bfs'?hops[u]+1<hops[v]:c<g[v]){g[v]=c;hops[v]=hops[u]+1;parent[v]=u;open.push({id:v,f:priority(c,h(x+dx,y+dy),hops[v])});}
       }
     }
     return {path:[],cost:Infinity,length:Infinity,expanded,ms:now()-began};
@@ -151,7 +173,7 @@
       const s={x:Math.floor(this.pose.x),y:Math.floor(this.pose.y)},p=plan(this.planningMap,s,this.map.goal,this.algorithm,this.clearance,this.map);
       this.path=p.path;this.expanded=p.expanded;this.planMs=p.ms;this.cost=p.cost;this.pathLength=p.length;this.target=0;this.progress=0;this.carrot=null;
       if(!p.path.length){this.status='blocked';this.v=this.omega=this.left=this.right=0;this.log('No route to goal. Edit the map and plan again.');return false;}
-      this.log(`${this.algorithm==='astar'?'A*':'Dijkstra'}: ${p.expanded.length} cells expanded, ${p.length.toFixed(2)} m route, ${p.cost.toFixed(2)} weighted cost`);return true;
+      this.log(`${PLANNERS[this.algorithm]}: ${p.expanded.length} cells expanded, ${p.length.toFixed(2)} m route, ${p.cost.toFixed(2)} weighted cost`);return true;
     }
     start(){if(this.status==='arrived')this.reset();if(this.status==='paused'){this.status='running';return;}if(this.compute())this.status='running';}
     replan(){this.replans++;const wasRunning=this.status==='running';if(this.compute())this.status=wasRunning?'running':'ready';}
@@ -201,6 +223,6 @@
     for(let i=0;i<36000&&sim.status==='running';i++)sim.step(1/60);
     return {controller:sim.settings.controller,status:sim.status==='running'?'timeout':sim.status,time:sim.time,distance:sim.distance,rmse:sim.rmse,fallbacks:sim.fallbacks};
   }
-  const api={makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,buildCostmap,obstacleDistance,segmentClear,config,pursuitTarget,benchmarkMission};
+  const api={PLANNERS,ENVIRONMENTS,makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,buildCostmap,obstacleDistance,segmentClear,config,pursuitTarget,benchmarkMission};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.RoboNav=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

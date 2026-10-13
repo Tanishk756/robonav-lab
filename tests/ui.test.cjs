@@ -29,7 +29,7 @@ test('UI initializes, runs, pauses, replans, compares, exports, and resets',()=>
   assert.notEqual(n.get('poseX').textContent,'3.50 m');
   n.get('obstacle').click();assert.equal(n.get('replans').textContent,1);
   n.get('run').click();assert.equal(n.get('status').textContent,'Mission paused');
-  n.get('compare').click();assert.equal(n.get('results').children.length,2);assert.equal(n.get('exportResults').disabled,false);
+  n.get('compare').click();assert.equal(n.get('results').children.length,5);assert.equal(n.get('exportResults').disabled,false);
   n.get('exportResults').click();n.get('exportTelemetry').click();n.get('saveMap').click();n.get('snapshot').click();assert.equal(downloads.length,4);
   n.get('help').click();assert.equal(n.get('guide').open,true);n.get('closeGuide').click();assert.equal(n.get('guide').open,false);
   n.get('reset').click();assert.equal(n.get('poseX').textContent,'3.50 m');assert.equal(n.get('status').textContent,'Ready to navigate');
@@ -80,4 +80,17 @@ test('costmap controls, weighted comparison and versioned settings round trip',a
   await n.get('mapFile').onchange({target:{files:[{size:5000,text:async()=>JSON.stringify(saved)}],value:'saved.json'}});
   assert.equal(n.get('costWeight').value,8);assert.equal(n.get('softBand').value,3);assert.equal(n.get('costDecay').value,1);
   n.get('costWeight').value='-1';n.get('costWeight').onchange();assert.match(n.get('toast').textContent,/Invalid costWeight/);assert.equal(n.get('costWeight').value,8);
+});
+
+
+test('new planner selections and environments work and import/export preserves planner',async()=>{
+  const {nodes:n,blobs}=boot();
+  for(const name of ['office','slalom','rooms','loading'])for(const planner of ['weighted','greedy','bfs']){
+    n.get('scenario').value=name;n.get('scenario').onchange();
+    n.get('algorithm').value=planner;n.get('algorithm').onchange();
+    assert.equal(n.get('status').textContent,'Ready to navigate');
+  }
+  n.get('saveMap').click();const data=JSON.parse(await blobs.at(-1).text());assert.equal(data.algorithm,'bfs');assert.equal(data.name,'loading');
+  await n.get('mapFile').onchange({target:{files:[{size:5000,text:async()=>JSON.stringify(data)}],value:'map.json'}});
+  assert.equal(n.get('algorithm').value,'bfs');n.get('compare').click();assert.equal(n.get('results').children.length,5);
 });

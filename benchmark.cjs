@@ -1,7 +1,7 @@
 /* Run: node benchmark.cjs. Output is CSV. No dependencies. */
 const R=require('./core.js');
 console.log('scenario,algorithm,controller,cruise_m_s,radius_m,margin_m,lookahead_m,soft_band_m,cost_weight,cost_decay,path_m,weighted_cost,costmap_build_ms,expanded_cells,median_search_ms,arrival_time_s,driven_m,tracking_rmse_m,fallbacks,status');
-for(const name of ['empty','warehouse','corridors','clutter'])for(const algorithm of ['astar','dijkstra'])for(const controller of ['waypoint','pursuit']){
+for(const name of Object.keys(R.ENVIRONMENTS))for(const algorithm of Object.keys(R.PLANNERS))for(const controller of ['waypoint','pursuit']){
   const map=R.makeMap(name),settings=R.config({controller}),clearance=settings.radius+settings.margin,grid=R.buildCostmap(map,settings),times=[];
   R.plan(grid,map.start,map.goal,algorithm,clearance,map);
   let p;for(let i=0;i<25;i++){p=R.plan(grid,map.start,map.goal,algorithm,clearance,map);times.push(p.ms);}

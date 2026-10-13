@@ -18,8 +18,9 @@
   <div class="workbench">
     <aside class="controls panel">
       <div class="section-heading"><h2>Mission setup</h2><span>01</span></div>
-      <label for="scenario">Environment</label><select id="scenario"><option value="warehouse">Warehouse aisles</option><option value="corridors">Alternating corridors</option><option value="clutter">Seeded clutter · 731</option><option value="empty">Open floor</option></select>
+      <label for="scenario">Environment</label><select id="scenario"><option value="warehouse">Warehouse aisles</option><option value="corridors">Alternating corridors</option><option value="clutter">Seeded clutter · 731</option><option value="empty">Open floor</option><option value="office">Office suites</option><option value="slalom">Slalom barriers</option><option value="rooms">Four rooms</option><option value="loading">Loading dock</option></select>
       <label for="algorithm">Path planner</label><select id="algorithm"><option value="astar">A* · Octile heuristic</option><option value="dijkstra">Dijkstra · Uniform cost</option></select>
+      <p class="hint">A* and Dijkstra minimize weighted cost. Weighted A* and greedy trade optimality for search effort. BFS minimizes grid steps, ignoring distance and proximity costs.</p>
       <details class="robot-config"><summary>Robot configuration</summary>
         <label for="controller">Path-following controller</label><select id="controller"><option value="waypoint">Heading + waypoints</option><option value="pursuit">Guarded pure pursuit</option></select>
         <label for="radius">Robot radius (m)</label><input id="radius" type="number" min="0.15" max="0.7" step="0.01" value="0.24">
@@ -69,8 +70,8 @@
         <div class="map-footer"><span><i class="swatch lime-bg"></i> Planned path</span><span><i class="swatch amber-bg"></i> Robot trail</span><span id="cursor">x — &nbsp; y —</span><span id="simClock">00:00.0 sim</span></div>
       </div>
       <div class="experiment panel">
-        <div class="experiment-head"><div><span class="eyebrow">REPEATABLE EXPERIMENTS</span><h2>Let the algorithms compete.</h2><p>Compare both planners on the current map. Same endpoints, same movement rules.</p></div><button id="compare" class="primary">Compare planners</button></div>
-        <div class="table-scroll"><table><thead><tr><th>Planner</th><th>Path length</th><th>Weighted cost</th><th>Expanded cells</th><th>Median time¹</th><th>Result</th></tr></thead><tbody id="results"><tr><td colspan="6" class="empty-row">Run a comparison to measure A* and Dijkstra on your map.</td></tr></tbody></table></div>
+        <div class="experiment-head"><div><span class="eyebrow">REPEATABLE EXPERIMENTS</span><h2>Let the algorithms compete.</h2><p>Compare all five planners on the current map. Same endpoints, same movement rules.</p></div><button id="compare" class="primary">Compare planners</button></div>
+        <div class="table-scroll"><table><thead><tr><th>Planner</th><th>Path length</th><th>Weighted cost</th><th>Expanded cells</th><th>Median time¹</th><th>Result</th></tr></thead><tbody id="results"><tr><td colspan="6" class="empty-row">Run a comparison to measure all planners on your map.</td></tr></tbody></table></div>
         <div class="experiment-bottom"><span>¹ 25 searches per planner; timing depends on your browser.</span><button id="exportResults" class="quiet" disabled>Export results CSV ↓</button></div>
       </div>
       <div class="experiment panel">
