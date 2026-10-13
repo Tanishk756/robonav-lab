@@ -1,10 +1,10 @@
-ROBONAV LAB v1.3 - TANISHK SINGHAL
+ROBONAV LAB v1.4 - TANISHK SINGHAL
 
-Extract the full repository and open index.html. Keep all six runtime files:
-index.html, style.css, navigation.js, core.js, app.js, navigation-worker.js.
+Extract the full repository and open index.html. Keep all seven runtime files:
+index.html, style.css, navigation.js, core.js, sharing.js, app.js, navigation-worker.js.
 No backend, install, internet or API keys are needed to use it.
 
-Verify v1.3, five planners, eight environments and three controllers.
+Verify v1.4, five planners, eight environments and three controllers.
 For the new demo, expand Robot configuration:
 - Controller: Dynamic window (DWA)
 - Navigation map: LiDAR observed map
@@ -26,3 +26,14 @@ For background comparisons, serve with python -m http.server 8000 if Python
 is installed, then open http://localhost:8000. Offline file opening still works.
 
 See README.md, docs/VALIDATION.md and docs/IMPLEMENTATION-PLAN.md.
+
+PUBLIC USE AND SHARING
+Open https://tanishk756.github.io/robonav-lab/ or use the offline release ZIP.
+Choose one of six gallery examples and press Load example.
+Press Share experiment link to include edited maps and initial settings.
+Copy the generated URL; anyone with it can read and run that experiment.
+Links do not capture ongoing mission progress. Export JSON is a backup.
+Export experiment report saves versioned settings and measured results.
+
+See CONTRIBUTING.md to help, SECURITY.md for private vulnerability reports,
+and RELEASE-CHECKLIST.md for publishing a tested package.

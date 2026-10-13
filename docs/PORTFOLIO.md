@@ -2,7 +2,7 @@
 
 ## Project summary
 
-A browser-based mobile robotics workbench that connects grid planning to footprint-aware navigation and differential-drive control. It supports repeatable planner/controller experiments, live sensor visualisation and data exports.
+A browser-based mobile robotics workbench that connects grid planning to footprint-aware navigation and differential-drive control. It supports repeatable planner/controller experiments, live sensor visualisation, compact share links, six guided examples and versioned experiment reports.
 
 ## Resume description
 
@@ -15,7 +15,7 @@ Developed RoboNav Lab, an offline mobile robot simulator integrating five graph 
 3. Compare waypoints, guarded pursuit and DWA using time, RMSE, minimum clearance and acceleration.
 4. Switch to sensor mode, show unknown space being observed, enable grid carts and demonstrate replanning.
 5. Show an unsolvable map and explain the stop condition.
-6. Export the map/settings and results to reproduce the experiment.
+6. Share a custom-map experiment URL, reload it in a fresh page, and export the versioned report to reproduce the experiment.
 
 ## Technical discussion
 

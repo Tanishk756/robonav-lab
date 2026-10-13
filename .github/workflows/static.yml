@@ -1,56 +1,107 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Validate and deploy RoboNav Lab
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: robonav-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
     runs-on: ubuntu-latest
+    env:
+      ROBONAV_BROWSER_OUTPUT: ${{ runner.temp }}/robonav-browser
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Validate application
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install development browser dependency
+        run: python -m pip install -r requirements-dev.txt
+      - name: Validate engine and formats
         run: |
           node --check navigation.js
           node --check navigation-worker.js
           node --check core.js
+          node --check sharing.js
           node --check app.js
-          node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs
+          node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs
           node benchmark.cjs > /tmp/robonav-benchmark.csv
           node benchmark-navigation.cjs > /tmp/robonav-navigation.csv
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Test native browser interface and sharing
+        run: python tests/browser_smoke.py
+      - name: Build offline package and static site
+        run: python scripts/package_release.py
+      - name: Test the extracted offline package
+        run: |
+          python -c "import os,zipfile; from pathlib import Path; zipfile.ZipFile(next(Path('dist').glob('*.zip'))).extractall(Path(os.environ['RUNNER_TEMP'])/'robonav-package')"
+          ROBONAV_SOURCE_ROOT="$RUNNER_TEMP/robonav-package/robonav-lab" ROBONAV_FILE_TEST=1 python tests/browser_smoke.py
+      - uses: actions/upload-artifact@v4
         with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+          name: robonav-release-and-site
+          path: dist/
+          include-hidden-files: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-evidence
+          path: ${{ runner.temp }}/robonav-browser/
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: robonav-release-and-site
+          path: dist/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/site/
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify-live:
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      ROBONAV_BASE_URL: ${{ needs.deploy.outputs.page_url }}
+      ROBONAV_BROWSER_OUTPUT: ${{ runner.temp }}/robonav-live
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Verify deployed release, workers and share-link reload
+        run: |
+          for attempt in 1 2 3; do
+            if python tests/browser_smoke.py; then exit 0; fi
+            sleep 10
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-browser-evidence
+          path: ${{ runner.temp }}/robonav-live/

@@ -1,7 +1,9 @@
 # RoboNav Lab implementation status and roadmap
 
-## Delivered in v1.3
+## Delivered through v1.4
 
+- Account-free shared experiment URLs, custom-map encoding, six-example gallery and versioned report export.
+- Contributor/security/community guides, issue/PR templates, deterministic release packaging, PR browser tests and live deployment checks.
 - Five global planners and eight deterministic environments with shared hard/soft costmaps.
 - Exact straight-segment/occupied-rectangle clearance and curved-step conservative sagitta bounds.
 - LiDAR-derived log-odds occupancy mapping, independent ground-truth/observed views and explicit unknown-space policies.
@@ -32,7 +34,7 @@ Acceptance: identical physical scenes behave consistently across resolutions; ro
 
 ## 4. Experiment management and integrations
 
-Add named in-browser experiment libraries and multi-seed batch runs; current JSON exports already save reusable initial-scene presets. Add success-rate plots, progress tracking and cancellation for long experiments. Broaden browser automation to file pickers, downloads and more viewports. Keep runtime dependency-free.
+Add named in-browser experiment libraries, replays and multi-seed batch runs; JSON exports and compact shared URLs already save reusable initial-scene presets. Add success-rate plots, progress tracking and cancellation for long experiments. Broaden browser automation to file pickers, downloads and more viewports. Keep runtime dependency-free.
 
 An optional ROS 2 adapter follows stable frames, units, timestamps and simulated disconnect-to-stop checks. It is separate future work, not implemented connectivity or hardware readiness.
 

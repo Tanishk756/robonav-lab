@@ -1,6 +1,7 @@
 /* Browser adapter: all motion and planning live in core.js. */
 (() => {
   'use strict';
+  const S=window.RoboNavSharing;
   const R=window.RoboNav,$=id=>document.getElementById(id);
   const canvas=$('map'),ctx=canvas.getContext('2d'),scan=$('scan'),sc=scan.getContext('2d');
   let sim=new R.Simulation(R.makeMap('warehouse')),tool='wall',drawing=false,dirty=false,results=[],controlResults=[],hover=null;
@@ -26,7 +27,7 @@
     if(!experimentWorker){try{done(executeExperiment(data));}catch(error){toast(error.message);}return;}
     button.disabled=true;pendingExperiments.set(data.id,{data,button,done,revision:experimentRevision});experimentWorker.postMessage(data);
   }
-  function invalidate(){experimentRevision++;controlResults=[];$('exportControllers').disabled=true;$('controllerResults').innerHTML='<tr><td colspan="8" class="empty-row">Settings or map changed. Run a fresh control experiment.</td></tr>';results=[];$('results').innerHTML='<tr><td colspan="6" class="empty-row">Map or endpoints changed. Run a fresh comparison.</td></tr>';$('exportResults').disabled=true;}
+  function invalidate(){experimentRevision++;$('shareLink').value='';$('shareHelp').textContent='Generate a link for the current initial scene.';controlResults=[];$('exportControllers').disabled=true;$('controllerResults').innerHTML='<tr><td colspan="8" class="empty-row">Settings or map changed. Run a fresh control experiment.</td></tr>';results=[];$('results').innerHTML='<tr><td colspan="6" class="empty-row">Map or endpoints changed. Run a fresh comparison.</td></tr>';$('exportResults').disabled=true;}
   function fresh(map){sim=new R.Simulation(map,$('algorithm').value,Number($('speed').value),readSettings());sim.compute();sim.status=sim.path.length?'ready':'blocked';invalidate();logKey='';accumulator=0;render();}
   function run(){
     if(sim.status==='running'){sim.status='paused';sim.navigationState='paused';sim.reason='Mission paused';sim.v=sim.omega=sim.left=sim.right=0;sim.log('Mission paused.');}
@@ -85,11 +86,31 @@
     if(!p){toast('The robot is too close to the goal. Reset for another experiment.');return;}
     sim.map.cells[p.y*sim.map.w+p.x]=1;invalidate();sim.log(`Obstacle inserted at (${p.x}, ${p.y}). Replanning.`);sim.replan();updateUI();
   };
+  const snapshot=()=>({...sim.map,settingsVersion:3,robot:sim.settings,speed:sim.speed,algorithm:sim.algorithm});
+  function loadExperiment(data){
+    const e=S.validateExperiment(R,data);
+    for(const key of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay','navigation','unknownPolicy'])$(key).value=e.robot[key];
+    $('movingObstacles').checked=e.robot.movingObstacles;$('speed').value=e.speed;$('speedValue').textContent=e.speed.toFixed(1)+' m/s';$('algorithm').value=e.algorithm;
+    fresh(e);$('scenario').selectedIndex=-1;$('example').selectedIndex=-1;$('exampleDescription').textContent='Custom or shared experiment. Inspect the settings, then run or compare.';$('shareLink').value='';$('showObserved').checked=e.robot.navigation==='sensor';
+  }
+  $('example').onchange=()=>{$('exampleDescription').textContent=S.EXAMPLES[$('example').value].description;};
+  $('loadExample').onclick=()=>{try{const id=$('example').value;loadExperiment(S.example(R,id));$('example').value=id;$('exampleDescription').textContent=S.EXAMPLES[id].description;toast('Example loaded. '+sim.reason);}catch(error){toast(error.message);}};
+  $('shareExperiment').onclick=async()=>{
+    try{
+      const location=window.location,base=location&&/^https?:$/.test(location.protocol)&&!['localhost','127.0.0.1','[::1]'].includes(location.hostname)?location.href.split('#')[0].split('?')[0]:S.PUBLIC_URL;
+      const link=base+'#experiment='+S.encode(R,snapshot());
+      if(link.length>4000){download('robonav-experiment.json',JSON.stringify(snapshot(),null,2),'application/json');toast('Experiment exported as JSON because its link is too long.');return;}
+      $('shareLink').value=link;$('shareHelp').textContent='Link ready. Select and copy the field to share this initial scene.';
+      if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(link);$('shareHelp').textContent='Link copied. Anyone with it can open this experiment.';}catch{}}
+      $('shareLink').focus();toast('Share link ready.');
+    }catch(error){toast('Cannot share: '+error.message);}
+  };
+  $('downloadReport').onclick=()=>download('robonav-experiment-report.json',JSON.stringify({application:'RoboNav Lab',version:S.VERSION,experiment:snapshot(),mission:{status:sim.status,state:sim.navigationState,reason:sim.reason,time_s:sim.time,distance_m:sim.distance,tracking_rmse_m:sim.rmse,minimum_body_clearance_m:Number.isFinite(sim.minClearance)?sim.minClearance:null,replans:sim.replans,recoveries:sim.recoveryAttempts},plannerComparison:results,controllerComparison:controlResults,note:'Initial scene/settings plus measured results; not a resumable mission. Search timings depend on the machine.'},null,2),'application/json');
   $('saveMap').onclick=()=>download('robonav-map.json',JSON.stringify({...sim.map,settingsVersion:3,robot:sim.settings,speed:sim.speed,algorithm:sim.algorithm},null,2),'application/json');
   $('loadMap').onclick=()=>$('mapFile').click();
   $('mapFile').onchange=async e=>{
     const file=e.target.files[0];if(!file)return;
-    try{if(file.size>100000)throw Error('Map file exceeds the 100 KB limit.');const data=JSON.parse(await file.text()),m=R.validateMap(data),settings=R.config(data.robot??{});if(data.settingsVersion!==undefined&&![1,2,3].includes(data.settingsVersion))throw Error('Unsupported settings version.');if(data.speed!==undefined&&(!Number.isFinite(data.speed)||data.speed<.4||data.speed>3))throw Error('Invalid speed.');if(data.algorithm!==undefined&&!Object.hasOwn(R.PLANNERS,data.algorithm))throw Error('Invalid planner.');for(const key of ['controller','radius','margin','lookahead','softBand','costWeight','costDecay','navigation','unknownPolicy'])$(key).value=settings[key];$('movingObstacles').checked=settings.movingObstacles;$('speed').value=data.speed??1.6;$('speedValue').textContent=Number($('speed').value).toFixed(1)+' m/s';$('algorithm').value=data.algorithm??'astar';fresh(m);$('scenario').selectedIndex=-1;toast('Map imported. Ready to plan.');}
+    try{if(file.size>100000)throw Error('Map file exceeds the 100 KB limit.');loadExperiment(JSON.parse(await file.text()));toast('Map imported. Ready to plan.');}
     catch(err){toast('Import failed: '+err.message);}finally{e.target.value='';}
   };
   $('snapshot').onclick=()=>{renderMap();const a=document.createElement('a');a.download='robonav-navigation.png';a.href=canvas.toDataURL('image/png');a.click();};
@@ -186,5 +207,8 @@
   }
   // Fixed timestep and no hidden-tab catch-up keep simulations reproducible.
   document.addEventListener('visibilitychange',()=>{lastFrame=0;accumulator=0;});
-  sim.compute();render();requestAnimationFrame(frame);
+  sim.compute();render();
+  const loadSharedLink=()=>{try{const hash=window.location?.hash??'';if(hash.startsWith('#experiment=')){loadExperiment(S.decode(R,hash.slice(12)));toast('Shared experiment loaded.');}}catch(error){toast('Shared link rejected: '+error.message);}};
+  loadSharedLink();window.addEventListener?.('hashchange',loadSharedLink);
+  requestAnimationFrame(frame);
 })();

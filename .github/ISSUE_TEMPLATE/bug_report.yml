@@ -1,0 +1,24 @@
+name: Bug report
+description: Report a reproducible problem
+title: "[Bug]: "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Release and browser
+      placeholder: v1.4 / Chrome or Edge version / operating system
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps and minimal experiment
+      description: Include settings, a public share link or exported JSON that you are comfortable making public.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

@@ -6,3 +6,5 @@ Thumbs.db
 .env.*
 
 __pycache__/
+
+dist/

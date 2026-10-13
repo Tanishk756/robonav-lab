@@ -6,18 +6,21 @@
   <meta name="author" content="Tanishk Singhal">
   <title>RoboNav Lab | Tanishk Singhal</title>
   <link rel="stylesheet" href="style.css">
-  <script defer src="navigation.js"></script><script defer src="core.js"></script><script defer src="app.js"></script>
+  <script defer src="navigation.js"></script><script defer src="core.js"></script><script defer src="sharing.js"></script><script defer src="app.js"></script>
 </head>
 <body>
+<a class="skip-link" href="#map">Skip to navigation canvas</a>
 <header class="topbar">
   <div class="brand"><span class="brand-icon" aria-hidden="true">⌘</span><div>RoboNav <b>Lab</b><small>A ROBOTICS PROJECT BY TANISHK SINGHAL</small></div></div>
   <div class="top-actions"><span class="offline">OFFLINE / LOCAL</span><button id="help" class="quiet">Quick guide <span>?</span></button></div>
 </header>
 <main>
-  <div class="page-title"><div><span class="eyebrow">TANISHK SINGHAL / ROBOTICS &amp; AUTONOMY</span><h1>Navigate. Observe. Compare.</h1></div><span class="version">2D SIMULATION <b>v1.3</b></span></div>
+  <div class="page-title"><div><span class="eyebrow">TANISHK SINGHAL / ROBOTICS &amp; AUTONOMY</span><h1>Navigate. Observe. Compare.</h1></div><span class="version">2D SIMULATION <b>v1.4</b></span></div>
   <div class="workbench">
     <aside class="controls panel">
       <div class="section-heading"><h2>Mission setup</h2><span>01</span></div>
+      <label for="example">Example gallery</label><select id="example"><option value="warehouse">First mission</option><option value="discovery">Discover the warehouse</option><option value="carts">Moving cart encounter</option><option value="clearance">Doorway does not fit</option><option value="costs">Prefer wider routes</option><option value="unknown">Unknown is blocked</option></select>
+      <button id="loadExample" class="full">Load example</button><p id="exampleDescription" class="hint" aria-live="polite">Known warehouse map with A* and waypoints. Run, pause, then compare all five planners.</p>
       <label for="scenario">Environment</label><select id="scenario"><option value="warehouse">Warehouse aisles</option><option value="corridors">Alternating corridors</option><option value="clutter">Seeded clutter · 731</option><option value="empty">Open floor</option><option value="office">Office suites</option><option value="slalom">Slalom barriers</option><option value="rooms">Four rooms</option><option value="loading">Loading dock</option></select>
       <label for="algorithm">Path planner</label><select id="algorithm"><option value="astar">A* - Octile heuristic</option><option value="dijkstra">Dijkstra - Uniform cost</option><option value="weighted">Weighted A* - 1.8x heuristic</option><option value="greedy">Greedy best-first</option><option value="bfs">Breadth-first - Fewest steps</option></select>
       <p class="hint">A* and Dijkstra minimize weighted cost. Weighted A* and greedy trade optimality for search effort. BFS minimizes grid steps, ignoring distance and proximity costs.</p>
@@ -52,7 +55,7 @@
       <button id="obstacle" class="full accent-outline">＋ Block route ahead</button>
       <div class="divider"></div>
       <div class="section-heading"><h2>Layers</h2><span>03</span></div>
-      <label class="check"><input type="checkbox" id="showObserved"> Observed map / unknown cells</label>
+      <label class="check"><input type="checkbox" id="showObserved"> Observed map: dark = unknown</label>
       <label class="check"><input type="checkbox" id="showLidar" checked> LiDAR rays <span class="swatch teal-bg"></span></label>
       <label class="check"><input type="checkbox" id="showExpanded" checked> Search expansion <span class="swatch blue-bg"></span></label>
       <label class="check"><input type="checkbox" id="showInflation" checked> Obstacle + robot inflation <span class="swatch amber-bg"></span></label>
@@ -60,6 +63,11 @@
       <label class="check"><input type="checkbox" id="showTrail" checked> Driven trajectory <span class="swatch amber-bg"></span></label>
       <div class="divider"></div>
       <div class="button-pair equal"><button id="saveMap">Export map</button><button id="loadMap">Import map</button></div>
+      <button id="shareExperiment" class="full">Share experiment link</button>
+      <p class="hint">Links include your edited map and initial settings, without an account. Mission progress is not included.</p>
+      <label for="shareLink">Shareable link</label><input id="shareLink" type="url" readonly aria-describedby="shareHelp">
+      <p id="shareHelp" class="hint" aria-live="polite">Generate a link, then copy it. JSON export is available as a backup.</p>
+      <button id="downloadReport" class="full">Export experiment report</button>
       <input type="file" id="mapFile" accept=".json,application/json" hidden>
     </aside>
     <section class="workspace">
@@ -100,9 +108,9 @@
       <p class="hint">Ideal LiDAR with known or sensor-derived maps. Ground-truth pose; no SLAM localization or hardware connection.</p>
     </aside>
   </div>
-  <footer><span>© 2026 <a href="https://github.com/Tanishk756" target="_blank" rel="noopener noreferrer">Tanishk Singhal</a> <b>/</b> RoboNav Lab</span><span>1 cell = 1 m · Configurable circular footprint · Wheel track 0.42 m</span></footer>
+  <footer><span>© 2026 <a href="https://github.com/Tanishk756" target="_blank" rel="noopener noreferrer">Tanishk Singhal</a> <b>/</b> RoboNav Lab <b>/</b> <a href="https://github.com/Tanishk756/robonav-lab">Source &amp; contribute</a> <b>/</b> <a href="https://github.com/Tanishk756/robonav-lab/releases/latest">Offline release</a></span><span>1 cell = 1 m · Configurable circular footprint · Wheel track 0.42 m</span></footer>
 </main>
-<div class="toast" id="toast" role="status" hidden></div>
+<div role="status" aria-live="polite" class="toast" id="toast" role="status" hidden></div>
 <dialog id="guide"><div class="dialog-head"><h2>Your first mission</h2><button id="closeGuide" aria-label="Close guide">✕</button></div><ol><li>Pick an environment and a planner.</li><li>Click <b>Run mission</b> to follow the planned route. Pause or reset at any time.</li><li>Click <b>Block route ahead</b> while running to see obstacle-triggered replanning.</li><li>Use the editor to draw walls, erase cells, or move start and goal.</li><li>Click <b>Compare planners</b>, then export results for your portfolio.</li></ol><h3>Keyboard controls</h3><p><b>Space</b>: run/pause · <b>R</b>: reset · <b>1–4</b>: edit tools. Focus the map, use arrow keys to select a cell, then <b>Enter</b> to apply the tool.</p><h3>What this model assumes</h3><p>Ground-truth position. Fully known mode plans from world occupancy; sensor mode builds a log-odds map using ideal LiDAR at 5 Hz. Optimistic mode explores unknown cells; conservative mode blocks them. Inserted walls enter sensor planning only after observation. Choose any of five planners across eight environments. Purple cells show soft proximity costs; amber halos and the teal ring show hard clearance. Choose heading-based waypoint control or pure pursuit with a forward collision check and waypoint fallback. Footprint inflation excludes unsafe robot-centre cells; exact transition checks validate graph edges. Dynamic window samples acceleration-limited commands. Moving grid carts are deterministic and yield to the robot.</p><p>Exported telemetry uses simulation time. Controller comparisons use the same fixed physics timestep. See README.md for equations, limitations and a demo script.</p></dialog>
 </body>
 </html>

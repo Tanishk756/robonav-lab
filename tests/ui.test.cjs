@@ -14,12 +14,12 @@ function boot(extra={}){
   }
   for(const match of html.matchAll(/id="([^"]+)"/g))nodes.set(match[1],new Element(match[1]));
   for(const match of html.matchAll(/<select id="([^"]+)">([\s\S]*?)<\/select>/g)){nodes.get(match[1]).options=[...match[2].matchAll(/<option value="([^"]+)">/g)].map(o=>({value:o[1]}));}
-  nodes.get('algorithm').value='astar';nodes.get('speed').value='1.6';nodes.get('scenario').value='warehouse';
+  nodes.get('example').value='warehouse';nodes.get('algorithm').value='astar';nodes.get('speed').value='1.6';nodes.get('scenario').value='warehouse';
   for(const [id,value] of Object.entries({controller:'waypoint',radius:'0.24',margin:'0.12',lookahead:'0.9',softBand:'1.5',costWeight:'2',costDecay:'2',navigation:'known',unknownPolicy:'optimistic'}))nodes.get(id).value=value;
   nodes.get('movingObstacles').checked=false;nodes.get('showObserved').checked=false;
   const buttons=['wall','erase','start','goal'].map(t=>{const b=new Element();b.dataset.tool=t;return b;});
   const document={getElementById:id=>{assert.ok(nodes.has(id),'unknown DOM id '+id);return nodes.get(id);},querySelectorAll:()=>buttons,createElement:()=>new Element(),createTextNode:t=>t,addEventListener:(k,v)=>handlers[k]=v};
-  const context={window:{RoboNav:require('../core.js')},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:blob=>{blobs.push(blob);return ''},revokeObjectURL(){}},console,...extra};
+  const context={window:{RoboNav:require('../core.js'),RoboNavSharing:require('../sharing.js'),location:{protocol:'file:',hash:'',href:'file:///index.html'}},document,navigator:{userAgent:'DOM-double'},requestAnimationFrame:f=>raf.push(f),setTimeout:()=>1,clearTimeout(){},Blob,URL:{createObjectURL:blob=>{blobs.push(blob);return ''},revokeObjectURL(){}},console,...extra};
   vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8'),context);
   return {nodes,raf,buttons,downloads,handlers,blobs};
 }
@@ -101,7 +101,7 @@ test('new planner selections and environments work and import/export preserves p
 
 test('real HTML select options exactly match engine planner and environment catalogs',()=>{
   const R=require('../core.js');
-  for(const [id,catalog] of [['algorithm',R.PLANNERS],['scenario',R.ENVIRONMENTS],['controller',R.CONTROLLERS]]){
+  for(const [id,catalog] of [['algorithm',R.PLANNERS],['scenario',R.ENVIRONMENTS],['controller',R.CONTROLLERS],['example',require('../sharing.js').EXAMPLES]]){
     const select=html.match(new RegExp('<select id="'+id+'">([\\s\\S]*?)</select>'));
     assert.ok(select,'missing '+id);const values=[...select[1].matchAll(/<option value="([^"]+)">/g)].map(m=>m[1]);
     assert.deepEqual(values,Object.keys(catalog));assert.equal(new Set(values).size,values.length);
@@ -139,4 +139,21 @@ test('worker failure falls back to the same comparison engine',()=>{
   const {nodes:n}=boot({Worker:FailingWorker});n.get('compare').click();worker.onerror();
   assert.equal(n.get('compare').disabled,false);assert.equal(n.get('results').children.length,5);
   assert.equal(n.get('exportResults').disabled,false);
+});
+
+
+test('gallery loads sensor settings and sharing preserves a custom experiment',async()=>{
+  const {nodes:n,blobs}=boot();n.get('example').value='discovery';n.get('example').onchange();n.get('loadExample').click();
+  assert.equal(n.get('navigation').value,'sensor');assert.equal(n.get('controller').value,'dwa');assert.equal(n.get('showObserved').checked,true);
+  await n.get('shareExperiment').onclick();const link=n.get('shareLink').value;assert.ok(link.startsWith('https://tanishk756.github.io/robonav-lab/#experiment='));
+  const e=require('../sharing.js').decode(require('../core.js'),link.split('#experiment=')[1]);assert.equal(e.robot.navigation,'sensor');
+  n.get('downloadReport').click();const report=JSON.parse(await blobs.at(-1).text());assert.equal(report.version,'1.4.0');assert.equal(report.experiment.robot.controller,'dwa');
+});
+
+test('shared links load on startup and malformed links leave a usable default scene',()=>{
+  const S=require('../sharing.js'),R=require('../core.js'),token=S.encode(R,S.example(R,'carts'));
+  const valid=boot({window:{RoboNav:R,RoboNavSharing:S,location:{protocol:'https:',hostname:'tanishk756.github.io',href:S.PUBLIC_URL+'#experiment='+token,hash:'#experiment='+token}}});
+  assert.equal(valid.nodes.get('navigation').value,'sensor');assert.equal(valid.nodes.get('movingObstacles').checked,true);
+  const bad=boot({window:{RoboNav:R,RoboNavSharing:S,location:{protocol:'https:',hostname:'tanishk756.github.io',href:S.PUBLIC_URL,hash:'#experiment=bad'}}});
+  assert.match(bad.nodes.get('toast').textContent,/Shared link rejected/);assert.equal(bad.nodes.get('status').textContent,'Ready to navigate');
 });

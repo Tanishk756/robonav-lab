@@ -2,17 +2,34 @@
 
 ### Tanishk Singhal - Robotics & Automation
 
-**v1.3** - An offline mobile robotics workbench connecting global planning, robot geometry, LiDAR mapping and reactive motion control. JavaScript/HTML Canvas, no runtime packages or backend, MIT licensed.
+**v1.4** - An offline mobile robotics workbench connecting global planning, robot geometry, LiDAR mapping and reactive motion control. JavaScript/HTML Canvas, no runtime packages or backend, MIT licensed.
 
 [Source](https://github.com/Tanishk756/robonav-lab) | [Validation](docs/VALIDATION.md) | [Release notes](CHANGELOG.md) | [Roadmap](docs/IMPLEMENTATION-PLAN.md)
 
+## Try it and share
+
+[Open the public simulator](https://tanishk756.github.io/robonav-lab/) | [Download the offline release](https://github.com/Tanishk756/robonav-lab/releases/latest) | [Contribute](CONTRIBUTING.md)
+
+Choose an example from the gallery and press **Load example**. Edit the map or settings, then press **Share experiment link**. The link includes the custom occupancy, endpoints and initial settings in a compact URL fragment; recipients do not need an account. Local file/localhost sessions generate links to the public simulator. Other hosted copies use their current address. Copy the link field if clipboard access is unavailable. Reloading a shared URL restores its experiment; changing a share fragment in an open tab also loads it. Invalid links show an error and leave the current/default scene usable.
+
+The URL fragment contains readable experiment data, not a private access token. Links do not save a running mission, observations or telemetry. Occupancy is bit-packed into 96 bytes; bounded decoding validates the full map and settings. The UI falls back to a JSON download if a future experiment exceeds the link-length limit. JSON map export remains the backup/share format. **Export experiment report** downloads application version, initial settings, mission metrics and available comparisons as JSON; use Save PNG separately for a picture.
+
+| Gallery example | Expected behavior |
+| --- | --- |
+| First mission | Known-map warehouse baseline; run and compare planners |
+| Discover the warehouse | Observe unknown space using LiDAR + DWA |
+| Moving cart encounter | Sensor navigation around cooperative grid carts |
+| Doorway does not fit | Intentional no-route result; reduce radius plus margin below 0.5 m |
+| Prefer wider routes | Strong proximity cost highlights route tradeoffs |
+| Unknown is blocked | Intentional no-route result under conservative unknown policy |
+
 ## Run
 
-Open **index.html** in Edge, Chrome or Firefox after extracting the entire repository. Keep index.html, style.css, navigation.js, core.js, app.js and navigation-worker.js together. No installation or internet is needed to use it. Node.js 20+ is needed only for development checks.
+Open **index.html** in Edge, Chrome or Firefox after extracting the entire repository. Keep index.html, style.css, navigation.js, core.js, sharing.js, app.js and navigation-worker.js together. No installation or internet is needed to use it. Node.js 20+ is needed only for development checks.
 
 A static server enables worker-based experiments when local-file workers are restricted. With Python installed, run `python -m http.server 8000` and open `http://localhost:8000`. Direct file opening remains supported through a synchronous comparison fallback. Large fallback comparisons can temporarily pause the page.
 
-## Try the new navigation release
+## Navigation experiment
 
 1. Choose **Warehouse aisles** and A*.
 2. Expand **Robot configuration**, choose **Dynamic window (DWA)** and **LiDAR observed map**.
@@ -82,12 +99,12 @@ Controls: Run/Pause/Resume, Reset, Plan route, wall/erase/start/goal editing, Bl
 ## Development and validation
 
 ```
-node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs
+node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs
 node benchmark.cjs
 node benchmark-navigation.cjs
 ```
 
-The regression suite has **43 passing tests**. The standard benchmark covers eight environments x five planners x three controllers: **120 missions**. [sample-results.csv](sample-results.csv) and [planner-results.csv](docs/planner-results.csv) are identical saved outputs. A separate **12-mission** [navigation benchmark](docs/navigation-results.csv) covers three environments, known/sensor maps and static/moving carts with A* + DWA. All saved missions arrived. Timing is machine-dependent.
+The regression suite has **49 passing tests**. The standard benchmark covers eight environments x five planners x three controllers: **120 missions**. [sample-results.csv](sample-results.csv) and [planner-results.csv](docs/planner-results.csv) are identical saved outputs. A separate **12-mission** [navigation benchmark](docs/navigation-results.csv) covers three environments, known/sensor maps and static/moving carts with A* + DWA. All saved missions arrived. Timing is machine-dependent.
 
 Optional real-browser integration: `python tests/browser_smoke.py` requires Python, the development-only websockets package and installed Edge; set ROBONAV_BROWSER for another compatible Chromium executable. It verifies actual selectors, worker comparisons with a responsive viewport, sensor/DWA/cart controls, and captures desktop/mobile screenshots. Set ROBONAV_FILE_TEST=1 to test direct offline opening. See [validation](docs/VALIDATION.md) for exact test scope and [file audit](docs/FILE-AUDIT.md).
 
@@ -95,6 +112,12 @@ Optional real-browser integration: `python tests/browser_smoke.py` requires Pyth
 
 No encoder noise, pose estimation, SLAM localization, motor/slip dynamics, configurable resolution, polygonal footprints, ROS connection or hardware validation. Sensor ranges are ideal. Moving carts yield and move discretely; there is no prediction of independently moving humans. Custom maps and every parameter combination are not exhaustively tested. Long missions retain growing telemetry arrays. The roadmap separates delivered navigation work from localization and map/footprint generalization.
 
-GitHub Pages uses the included Actions workflow; choose GitHub Actions as the Pages source. Syntax checks, all tests, and both benchmarks gate deployment. Reload after updates and verify the **v1.3** badge.
+GitHub Pages uses the included Actions workflow. Pull requests run validation without publication. Main runs syntax checks, all tests, both benchmarks, real Chromium browser checks and an extracted-offline-package check before deployment. A separate job checks the actual deployed URL, worker responsiveness and share-link reload. Choose GitHub Actions as the Pages source and verify the **v1.4** badge after updates.
+
+## Community and releases
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [extension guide](docs/EXTENDING.md), [starter tasks](docs/STARTER-ISSUES.md), [security policy](SECURITY.md), [community conduct](CODE_OF_CONDUCT.md) and [release checklist](RELEASE-CHECKLIST.md). Bug/feature issue forms and a PR template are included. All contribution and runtime code remains MIT licensed.
+
+`python scripts/package_release.py` creates a deterministic, versioned offline ZIP, SHA-256 checksum and minimal static site from tracked source in dist/. Build after staging/committing new files. Zip metadata and UTF-8 text line endings are normalized; reproducibility assumes identical source bytes. Release tags identify the tested source. A generated ZIP is tested before publication. Replays, named browser libraries and cloud accounts are not part of this release.
 
 MIT licensed. Copyright 2026 Tanishk Singhal. [GitHub](https://github.com/Tanishk756) | [Issues](https://github.com/Tanishk756/robonav-lab/issues)

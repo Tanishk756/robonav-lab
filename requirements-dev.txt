@@ -1,0 +1,2 @@
+# Optional CDP browser checks only; not a runtime dependency.
+websockets>=14,<17

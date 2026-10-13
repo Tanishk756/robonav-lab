@@ -1,4 +1,4 @@
-# RoboNav Lab v1.3 architecture
+# RoboNav Lab v1.4 architecture
 
 Maintainer: Tanishk Singhal. Runtime remains dependency-free and offline-capable.
 
@@ -17,3 +17,7 @@ Grid carts are discrete, deterministic, one-cell obstacles on free horizontal tr
 The original transport status protocol is retained; a separate navigationState and reason provide replanning/recovery/failure detail. Waiting/replanning recovery is bounded and all missions have a 600 s simulation limit. Exports save reusable initial settings, not live mapper/pose state. Metrics distinguish body clearance, hard safety margin, geometric length and weighted graph cost.
 
 Defaults preserve known static scenes and the waypoint controller. Legacy imports default new navigation fields accordingly. GitHub Actions gates Pages deployment on syntax, tests and both benchmark suites. Python/websockets are optional development-only browser-check dependencies.
+
+sharing.js owns application version, strict experiment normalization, share-format version 1 and gallery metadata. It bit-packs the fixed occupancy, then encodes bounded UTF-8 JSON as base64url. Imported strings are displayed through textContent; no shared code executes. app.js uses the same normalizer for file imports, gallery loads and shared URLs. Settings schema version 3 remains independent of the application/share-format versions.
+
+The public workflow separates PR validation, main-branch Pages deployment and live verification. It checks native browser selectors, worker results, sharing and an extracted offline ZIP. scripts/package_release.py packages tracked source deterministically and stages only seven runtime assets plus .nojekyll for hosting. Optional browser dependencies never enter runtime delivery. See EXTENDING.md and CONTRIBUTING.md for extension contracts and contribution workflow.
