@@ -3,7 +3,6 @@
 ## Delivered through v1.5
 
 - Guided demo, four separate challenge categories, route overlays, synchronized controller playback, bounded recorded replay and PNG/HTML result reports.
-- Captioned launch assets, editable channel drafts, social preview metadata and actual Edge/Chrome/Firefox checks.
 - Opt-in local counters; first-time human and physical-device protocols remain unexecuted follow-up work.
 - Account-free shared experiment URLs, custom-map encoding, six-example gallery and versioned report export.
 - Contributor/security/community guides, issue/PR templates, deterministic release packaging, PR browser tests and live deployment checks.

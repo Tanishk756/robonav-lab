@@ -6,7 +6,6 @@
 
 [Source](https://github.com/Tanishk756/robonav-lab) | [Validation](docs/VALIDATION.md) | [Release notes](CHANGELOG.md) | [Roadmap](docs/IMPLEMENTATION-PLAN.md)
 
-[![Watch obstacle-triggered replanning](launch/demo.gif)](https://tanishk756.github.io/robonav-lab/launch/replan.mp4)
 
 ## Start in 30 seconds
 
@@ -20,7 +19,6 @@ The main **Mission replay** stores poses, classified observed occupancy, seen ma
 
 **Export result card PNG** creates a 1200 x 900 image with version, map, measurements and category. **Export readable HTML report** includes the map image, settings and comparisons with a reproducible link. Reports use the current live result even if a replay frame was selected. Use **Feedback / contribute** to submit a reproducible issue.
 
-[Launch kit: three captioned MP4s, editable posts and user-test protocol](launch/README.md)
 
 ## Try it and share
 
@@ -134,12 +132,12 @@ GitHub Pages uses the included Actions workflow. Pull requests run validation wi
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [extension guide](docs/EXTENDING.md), [starter tasks](docs/STARTER-ISSUES.md), [security policy](SECURITY.md), [community conduct](CODE_OF_CONDUCT.md) and [release checklist](RELEASE-CHECKLIST.md). Bug/feature issue forms and a PR template are included. All contribution and runtime code remains MIT licensed.
 
-`python scripts/package_release.py` creates deterministic, versioned offline and launch-kit ZIPs, SHA-256 checksums and a minimal static site from tracked source in dist/. Build after staging/committing new files. Zip metadata and UTF-8 text line endings are normalized; reproducibility assumes identical source bytes. Release tags identify the tested source. A generated ZIP is tested before publication. Bounded mission replay is included. Named browser libraries and cloud accounts remain future work.
+`python scripts/package_release.py` creates deterministic, versioned offline ZIPs, SHA-256 checksums and a minimal static site from tracked source in dist/. Build after staging/committing new files. Zip metadata and UTF-8 text line endings are normalized; reproducibility assumes identical source bytes. Release tags identify the tested source. A generated ZIP is tested before publication. Bounded mission replay is included. Named browser libraries and cloud accounts remain future work.
 
 MIT licensed. Copyright 2026 Tanishk Singhal. [GitHub](https://github.com/Tanishk756) | [Issues](https://github.com/Tanishk756/robonav-lab/issues)
 
-## Launch measurement and browser coverage
+## Local usage data and browser coverage
 
-Usage counting is off by default and optional. It stores only four counters on the current device: demo starts, mission completions, share actions and passed local challenges. Opting out clears them; export is explicit. No analytics requests, map contents, identifiers or URL fragments are sent to a tracking service. These local counts do not measure total public reach. See [measurement plan](launch/MEASUREMENT.md).
+Usage counting is off by default and optional. It stores only four counters on the current device: demo starts, mission completions, share actions and passed local challenges. Opting out clears them; export is explicit. No analytics requests, map contents, identifiers or URL fragments are sent to a tracking service. These local counts do not measure total public reach.
 
-Actual Edge, Chrome and Firefox checks cover guided missions, replay isolation, native PNG/HTML downloads, challenge-link reload, simple view and desktop/emulated-mobile layout. Optional cross-browser tests use `requirements-browsers.txt` and `python tests/cross_browser.py`; install Playwright browsers first. The CI matrix uses Chromium and Firefox. Physical phones and first-time human participants remain explicit follow-up work in [USER-TESTING.md](launch/USER-TESTING.md).
+Actual Edge, Chrome and Firefox checks cover guided missions, replay isolation, native PNG/HTML downloads, challenge-link reload, simple view and desktop/emulated-mobile layout. Optional cross-browser tests use `requirements-browsers.txt` and `python tests/cross_browser.py`; install Playwright browsers first. The CI matrix uses Chromium and Firefox. Physical phones and first-time human participants remain explicit follow-up work in [USER-TESTING.md](docs/USER-TESTING.md).

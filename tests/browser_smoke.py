@@ -88,7 +88,7 @@ async def check(port, site_port):
           const nativeClick=HTMLAnchorElement.prototype.click,captured=[];HTMLAnchorElement.prototype.click=function(){if(this.download)captured.push({name:this.download,url:this.href});else nativeClick.call(this);};
           el('downloadCard').click();el('downloadHtml').click();HTMLAnchorElement.prototype.click=nativeClick;
           assert(captured.some(x=>x.name.endsWith('.png')&&x.url.startsWith('data:image/png')&&x.url.length>1000),'result PNG');
-          const report=await (await fetch(captured.find(x=>x.name.endsWith('.html')).url)).text();assert(report.includes('Reproduce the initial experiment')&&report.includes('1.5.0'),'readable report');
+          const report=await (await fetch(captured.find(x=>x.name.endsWith('.html')).url)).text();assert(report.includes('Reproduce the initial experiment')&&report.includes('1.5.1'),'readable report');
           watch=false;if(location.protocol!=='file:')assert(frames>1,'viewport blocked during worker comparison');
           el('scenario').value='warehouse';el('scenario').dispatchEvent(new Event('change'));
           for(const [id,value] of [['navigation','sensor'],['controller','dwa']]){el(id).value=value;el(id).dispatchEvent(new Event('change'));}

@@ -38,7 +38,7 @@ Export experiment report saves versioned settings and measured results.
 See CONTRIBUTING.md to help, SECURITY.md for private vulnerability reports,
 and RELEASE-CHECKLIST.md for publishing a tested package.
 
-PRE-PROMOTION EXPERIENCE
+INTERACTIVE EXPERIENCE
 Start guided demo at the top of the page; it runs, inserts an obstacle, compares
 routes and pauses automatically. Simple view reduces controls on small screens.
 Choose a challenge category, configure before starting, then complete a fresh run.
@@ -46,4 +46,4 @@ Scrub Mission replay or click event markers; the live robot stays unchanged.
 Compare planners for route overlays and controllers for synchronized playback.
 Export result card PNG or readable HTML report, then share your experiment link.
 Usage counters are off by default, local-only and clear when opted out.
-See launch/README.md for videos, drafts and the human/mobile testing checklist.
+See docs/USER-TESTING.md for the human/mobile testing checklist.

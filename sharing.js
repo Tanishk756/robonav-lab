@@ -1,7 +1,7 @@
 /* Versioned, bounded experiment links. Occupancy is bit-packed, never executed. */
 (function(root){
   'use strict';
-  const VERSION='1.5.0',PUBLIC_URL='https://tanishk756.github.io/robonav-lab/';
+  const VERSION='1.5.1',PUBLIC_URL='https://tanishk756.github.io/robonav-lab/';
   const toBase64=bytes=>typeof Buffer!=='undefined'?Buffer.from(bytes).toString('base64'):btoa(String.fromCharCode(...bytes));
   const fromBase64=text=>typeof Buffer!=='undefined'?Uint8Array.from(Buffer.from(text,'base64')):Uint8Array.from(atob(text),c=>c.charCodeAt(0));
   const pack=bytes=>toBase64(bytes).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');

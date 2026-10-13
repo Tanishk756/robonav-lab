@@ -57,12 +57,11 @@ scripts/package_release.py packages tracked source into dist/robonav-lab-1.5.0.z
 
 A release is considered published only after Actions and live verification succeed. The versioned release contains the offline ZIP and checksum; see RELEASE-CHECKLIST.md.
 
-## Pre-promotion experience validation
+## Interactive experience validation
 
 Guided demo regression verifies automatic obstacle insertion, route comparisons, pause and replay capture. Challenge regressions complete all four categories and reject changed scenes or invalid run contexts. Share tokens preserve a challenge ID. Recorder tests verify live-state isolation, observed snapshots, terminal events and the 6000-frame bound. Counter tests verify default-off, bounded local storage and opt-out clearing. Planner paths and controller traces are the actual engine outputs.
 
-Actual Edge, Chrome and Firefox checks passed on Windows: guided mission, replay/live isolation, native PNG and HTML downloads, challenge share reload, simple view and desktop/emulated-mobile rendering. Evidence: [cross-browser-results.json](cross-browser-results.json), [Firefox desktop](firefox-desktop.png). CI additionally runs Playwright Chromium and Firefox. Physical phones and first-time human studies have not been executed; [the protocol](../launch/USER-TESTING.md) records that limitation explicitly.
+Actual Edge, Chrome and Firefox checks passed on Windows: guided mission, replay/live isolation, native PNG and HTML downloads, challenge share reload, simple view and desktop/emulated-mobile rendering. Evidence: [cross-browser-results.json](cross-browser-results.json), [Firefox desktop](firefox-desktop.png). CI additionally runs Playwright Chromium and Firefox. Physical phones and first-time human studies have not been executed; [the protocol](USER-TESTING.md) records that limitation explicitly.
 
-The launch kit includes three roughly 12-second H.264/yuv420p MP4s with burned-in captions and SRT files. [Media validation](../launch/media-validation.json) records actual duration, dimensions, bitrate and size. The replanning clip uses recorded engine motion; the cost clip illustrates planned routes; the doorway clip shows an actual failed/reachable planning pair. Prepared social drafts were not posted. HN text is deliberately a personal-writing checklist under current guidelines; the DEV draft discloses AI assistance.
 
 Usage counters are optional local data, not public analytics or measured reach. Local challenge results are not anti-cheat credentials. Replay stores bounded classified observations/poses rather than a resumable world or an externally executable program. Main replay records dynamic occupancy; small comparison canvases show trajectories over the base static scene.

@@ -147,7 +147,7 @@ test('gallery loads sensor settings and sharing preserves a custom experiment',a
   assert.equal(n.get('navigation').value,'sensor');assert.equal(n.get('controller').value,'dwa');assert.equal(n.get('showObserved').checked,true);
   await n.get('shareExperiment').onclick();const link=n.get('shareLink').value;assert.ok(link.startsWith('https://tanishk756.github.io/robonav-lab/#experiment='));
   const e=require('../sharing.js').decode(require('../core.js'),link.split('#experiment=')[1]);assert.equal(e.robot.navigation,'sensor');
-  n.get('downloadReport').click();const report=JSON.parse(await blobs.at(-1).text());assert.equal(report.version,'1.5.0');assert.equal(report.experiment.robot.controller,'dwa');
+  n.get('downloadReport').click();const report=JSON.parse(await blobs.at(-1).text());assert.equal(report.version,'1.5.1');assert.equal(report.experiment.robot.controller,'dwa');
 });
 
 test('shared links load on startup and malformed links leave a usable default scene',()=>{

@@ -1,4 +1,4 @@
-/* Launch experiences: local challenges, bounded replay and canvas reports. */
+/* Interactive experiences: local challenges, bounded replay and canvas reports. */
 (function(root){
   'use strict';
   const CHALLENGES={

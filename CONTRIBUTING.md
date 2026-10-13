@@ -31,4 +31,4 @@ See [extension guide](docs/EXTENDING.md), [architecture](docs/DESIGN.md), [valid
 
 See [starter tasks](docs/STARTER-ISSUES.md) for scoped proposals. These are suggested tasks, not claims that someone is assigned or that implementation is complete.
 
-Cross-browser checks: install requirements-browsers.txt, run python -m playwright install chromium firefox, then set ROBONAV_TEST_BROWSERS=chromium,firefox and run python tests/cross_browser.py. The local edge,chrome,firefox option uses installed Windows executables and the Playwright Firefox build. Launch assets can be regenerated with scripts/create_launch_assets.py, requiring ffmpeg and a compatible Chromium executable.
+Cross-browser checks: install requirements-browsers.txt, run python -m playwright install chromium firefox, then set ROBONAV_TEST_BROWSERS=chromium,firefox and run python tests/cross_browser.py. The local edge,chrome,firefox option uses installed Windows executables and the Playwright Firefox build.

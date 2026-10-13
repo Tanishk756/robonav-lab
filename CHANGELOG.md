@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.1 - 2026-10-13
+
+- Removed promotional materials and related website/documentation links.
+- Simplified release packaging to simulator source, documentation and checksums.
+- Kept the usability testing protocol with technical documentation.
+
 ## 1.5.0 - 2026-10-13
 
 - Added first-visit introduction, automatic guided replanning demo and simple view.
@@ -8,9 +14,8 @@
 - Added bounded mission replay with observations, poses, route changes and event markers.
 - Added 1200x900 PNG result cards, readable self-contained HTML reports and contextual explanations.
 - Added opt-in local-only usage counters with explicit export and opt-out clearing.
-- Added three captioned H.264 launch clips, README preview GIF, social metadata and editable launch guidance.
 - Added actual Edge/Chrome/Firefox download/replay/challenge checks and Chromium/Firefox CI.
-- Preserved explicit human-participant and physical-device testing follow-ups; no social posts were sent.
+- Documented human-participant and physical-device testing follow-ups.
 
 
 ## 1.4.0 - 2026-10-13
@@ -47,7 +52,7 @@
 - Added validation gates before GitHub Pages publication.
 
 
-## 1.1.0 — 2026-09-13
+## 1.1.0 â€” 2026-09-13
 
 - Added Tanishk Singhal's name, project attribution, profile link, author metadata and copyright.
 - Added adjustable circular robot radius and clearance margin.
@@ -58,6 +63,6 @@
 - Added regression tests for footprint constraints, controllers and configuration imports.
 - Prepared static GitHub Pages publishing with `.nojekyll`.
 
-## 1.0.0 — 2026-09-13
+## 1.0.0 â€” 2026-09-13
 
 Initial release: editable maps, A*/Dijkstra, differential drive, waypoint following, ideal LiDAR, runtime obstacle insertion, metrics and exports.

@@ -39,24 +39,3 @@ for name in RUNTIME+['.nojekyll']:
 print(str(archive))
 print(digest)
 
-media=ROOT/'launch'
-if media.exists():
-    (site/'launch').mkdir(exist_ok=True)
-    for source in media.iterdir():
-        if source.is_file() and source.suffix in ['.mp4','.png','.gif','.srt']:
-            (site/'launch'/source.name).write_bytes(source.read_bytes())
-
-if media.exists():
-    kit=output/f'robonav-launch-kit-{VERSION}.zip'
-    with zipfile.ZipFile(kit,'w',compression=zipfile.ZIP_DEFLATED) as bundle:
-        for source in sorted(media.iterdir()):
-            if not source.is_file() or source.is_symlink():
-                continue
-            info=zipfile.ZipInfo('launch/'+source.name,date_time=(1980,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED;info.external_attr=0o100644<<16
-            data=source.read_bytes()
-            if source.suffix in ['.md','.srt','.json']:
-                data=data.decode('utf-8').replace('\r\n','\n').encode('utf-8')
-            bundle.writestr(info,data)
-    kit_digest=hashlib.sha256(kit.read_bytes()).hexdigest()
-    (output/'SHA256SUMS.txt').write_text(digest+'  '+archive.name+'\n'+kit_digest+'  '+kit.name+'\n',encoding='utf-8',newline='\n')
-    print(str(kit))

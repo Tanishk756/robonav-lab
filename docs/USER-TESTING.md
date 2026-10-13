@@ -1,4 +1,4 @@
-# First-time and physical-device launch checks
+# First-time and physical-device usability checks
 
 Status: automated Edge, Chrome and Firefox checks are available. Mobile screenshots are emulated. No first-time human sessions or physical-phone sessions have been completed by this agent.
 
@@ -13,7 +13,7 @@ Recruit a small, varied set of volunteers yourself: someone learning robotics, a
 5. Share an experiment and reopen it in another tab.
 6. Export a result card and tell me what its measurements mean.
 
-Record task completion, confusion, time-to-first-demo and exact wording that misled them. Do not invent participant quotes or completion rates. Fix repeated friction before broad promotion.
+Record task completion, confusion, time-to-first-demo and exact wording that misled them. Do not invent participant quotes or completion rates. Fix repeated friction before release.
 
 ## Physical mobile check
 
