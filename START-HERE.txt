@@ -1,19 +1,19 @@
-ROBONAV LAB v1.1 - TANISHK SINGHAL
+ROBONAV LAB v1.2 - TANISHK SINGHAL
 
-1. Extract the whole ZIP. Do not open the app inside the ZIP preview.
-2. Double-click index.html. If asked, choose Edge, Chrome or Firefox.
-3. Click Run mission.
-4. Click Block route ahead while the robot is moving.
-5. Click Compare planners to measure A* and Dijkstra.
+1. Extract the whole ZIP; keep index.html, style.css, core.js and app.js together.
+2. Open index.html in Edge, Chrome or Firefox. No install or internet required.
+3. Verify the v1.2 badge and five entries in Path planner.
+4. Choose one of eight environments and one of five planners.
+5. Run mission, or Compare planners to benchmark all five.
+6. Expand Robot configuration for radius, hard safety margin, soft cost band,
+   proximity weight, decay and pursuit controller settings.
+7. Toggle amber obstacle/robot inflation and purple soft cost separately.
+8. Compare controllers, insert an obstacle and export map/settings or results.
 
-No installation, internet, API keys or payment required to use the app.
-All four app files must stay together: index.html, style.css, core.js, app.js.
+A* and Dijkstra minimize weighted cost. Weighted A* and greedy are approximate.
+BFS minimizes grid steps, not metres or proximity cost.
+Save your map before closing. Edits are stored only in memory.
+If an old page is open, reload with Ctrl+F5 or reopen Desktop/robonav-lab/index.html.
 
-Save your map using Export map before closing the page.
-See README.md for the algorithms, limitations and optional development tests.
-Expand Robot configuration to change footprint or choose pure pursuit.
-Use Compare controllers for a complete-mission benchmark.
-See docs/PORTFOLIO.md for a presentation outline.
-
-This build passed automated engine and DOM-adapter tests. Visual browser QA
-was unavailable in the build environment; please check it in your browser.
+See README.md, docs/VALIDATION.md and docs/IMPLEMENTATION-PLAN.md.
+Node.js 20+ is needed only for development tests, not for using the app.

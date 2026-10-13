@@ -2,11 +2,11 @@
 
 ## Current baseline and this change
 
-The application is an offline Canvas simulator with an independent CommonJS/browser engine. It has a fixed 32 x 24 grid (1 m cells), A*/Dijkstra, circular-footprint collision checking, differential-drive integration, waypoint and guarded pursuit control, ideal LiDAR, map editing, imports/exports, and deterministic mission comparisons. There is no sensor-derived map, localization estimator, velocity-space local planner, or robotics middleware connection.
+The application is an offline Canvas simulator with an independent CommonJS/browser engine. It has a fixed 32 x 24 grid (1 m cells), five planners across eight environments, circular-footprint collision checking, differential-drive integration, waypoint and guarded pursuit control, ideal LiDAR, map editing, imports/exports, and deterministic mission comparisons. There is no sensor-derived map, localization estimator, velocity-space local planner, or robotics middleware connection.
 
 Inflation now displays continuous amber halos around all occupied cells, including boundary walls and newly painted obstacles. A filled, dashed teal ring displays the robot safety envelope. Both follow the existing layer toggle. Robot configuration reports the effective radius explicitly.
 
-The physical radius is `r`, the extra safety margin is `m`, and obstacle configuration-space inflation is `r + m`. The robot ring also has radius `r + m`. These are two views of the same constraint: do not add both again during collision checking. LiDAR still observes physical walls. Existing map JSON retains `robot.radius` and `robot.margin`, so no migration is needed. This is a binary clearance layer, not yet a graded traversal-cost layer.
+The physical radius is `r`, the extra safety margin is `m`, and obstacle configuration-space inflation is `r + m`. The robot ring also has radius `r + m`. These are two views of the same constraint: do not add both again during collision checking. LiDAR still observes physical walls. Existing map JSON retains `robot.radius` and `robot.margin`, so no migration is needed. Hard clearance and the graded proximity costmap are implemented as separate derived layers.
 
 ## 1. Clearance geometry and regression coverage — first priority
 
@@ -16,7 +16,7 @@ Acceptance: tests cover tangency, rounded obstacle corners, boundaries, narrow c
 
 ## 2. Graded inflation costmap — recommended next feature
 
-Implemented locally: independent soft-band, weight, and decay controls; exact cell-centre distance to physical occupied rectangles; endpoint-averaged weighted edges; purple layer; separate length/cost and build/search metrics; versioned settings and CSV fields. Regression tests verify wider-route preference, equal A*/Dijkstra weighted optima, zero-weight baseline equivalence, unchanged hard occupancy/LiDAR, rebuilding after edits, and settings round trips. A pre-existing one-sided tangency bug was also corrected. Straight-edge checking remains conservatively sampled; the exact swept-geometry work in stage 1 is still outstanding. Visual browser QA remains outstanding.
+Implemented in v1.2: independent soft-band, weight, and decay controls; exact cell-centre distance to physical occupied rectangles; endpoint-averaged weighted edges; purple layer; separate length/cost and build/search metrics; versioned settings and CSV fields. Regression tests verify wider-route preference, equal A*/Dijkstra weighted optima, zero-weight baseline equivalence, unchanged hard occupancy/LiDAR, rebuilding after edits, and settings round trips. A pre-existing one-sided tangency bug was also corrected. Straight-edge checking remains conservatively sampled; the exact swept-geometry work in stage 1 is still outstanding. Desktop Edge smoke verification is complete; cross-browser, interactive mobile and download/file-picker QA remain outstanding.
 
 Introduce a separate derived costmap with physical occupancy, lethal footprint exclusion, and a soft proximity band. Retain the current safety margin as the hard constraint; add independent soft-band distance and decay/weight parameters. Compute distance to occupied rectangles or a documented conservative approximation, then map distance outside the hard envelope to a decaying nonnegative penalty. Show hard and soft layers with distinct colors and a legend.
 
@@ -57,7 +57,7 @@ An optional ROS 2 adapter should follow stable world frames and configurable res
 ## Delivery sequence
 
 1. Review inflation visually, then finish clearance geometry and regression fixtures.
-2. Deliver graded costmap as an isolated feature with weighted-planning benchmarks.
+2. Maintain the implemented graded costmap, five planners and eight environments with regression coverage.
 3. Deliver sensor mapping, followed by reactive local planning and recovery.
 4. Add pose estimation, then resolution/footprint generalization.
 5. Extend reproducible evaluation throughout; consider ROS only after these contracts stabilize.

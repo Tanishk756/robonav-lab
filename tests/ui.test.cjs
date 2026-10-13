@@ -7,11 +7,13 @@ function boot(){
   const drawing=new Proxy({}, {get:(_,k)=>k==='measureText'?()=>({width:10}):()=>{},set:()=>true});
   class Element{
     constructor(id=''){this.id=id;this.textContent='';this.children=[];this.style={};this.dataset={};this.events={};this.checked=true;this.disabled=false;this.hidden=false;this.classList={toggle(){}};}
+    set value(v){this._value=this.options&&!this.options.some(o=>o.value===String(v))?'':v;}get value(){return this._value;}
     getContext(){return drawing;}append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}setAttribute(k,v){this[k]=v;}
     addEventListener(k,v){this.events[k]=v;}click(){this.onclick?.();if(this.download)downloads.push(this.download);}focus(){}setPointerCapture(){}
     showModal(){this.open=true;}close(){this.open=false;}getBoundingClientRect(){return {left:0,top:0,width:960,height:720};}toDataURL(){return 'data:image/png,';}
   }
   for(const match of html.matchAll(/id="([^"]+)"/g))nodes.set(match[1],new Element(match[1]));
+  for(const match of html.matchAll(/<select id="([^"]+)">([\s\S]*?)<\/select>/g)){nodes.get(match[1]).options=[...match[2].matchAll(/<option value="([^"]+)">/g)].map(o=>({value:o[1]}));}
   nodes.get('algorithm').value='astar';nodes.get('speed').value='1.6';nodes.get('scenario').value='warehouse';
   for(const [id,value] of Object.entries({controller:'waypoint',radius:'0.24',margin:'0.12',lookahead:'0.9',softBand:'1.5',costWeight:'2',costDecay:'2'}))nodes.get(id).value=value;
   const buttons=['wall','erase','start','goal'].map(t=>{const b=new Element();b.dataset.tool=t;return b;});
@@ -93,4 +95,15 @@ test('new planner selections and environments work and import/export preserves p
   n.get('saveMap').click();const data=JSON.parse(await blobs.at(-1).text());assert.equal(data.algorithm,'bfs');assert.equal(data.name,'loading');
   await n.get('mapFile').onchange({target:{files:[{size:5000,text:async()=>JSON.stringify(data)}],value:'map.json'}});
   assert.equal(n.get('algorithm').value,'bfs');n.get('compare').click();assert.equal(n.get('results').children.length,5);
+});
+
+
+test('real HTML select options exactly match engine planner and environment catalogs',()=>{
+  const R=require('../core.js');
+  for(const [id,catalog] of [['algorithm',R.PLANNERS],['scenario',R.ENVIRONMENTS]]){
+    const select=html.match(new RegExp('<select id="'+id+'">([\\s\\S]*?)</select>'));
+    assert.ok(select,'missing '+id);const values=[...select[1].matchAll(/<option value="([^"]+)">/g)].map(m=>m[1]);
+    assert.deepEqual(values,Object.keys(catalog));assert.equal(new Set(values).size,values.length);
+  }
+  const {nodes:n}=boot();n.get('algorithm').value='missing';assert.equal(n.get('algorithm').value,'');
 });

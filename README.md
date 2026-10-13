@@ -4,7 +4,7 @@
 
 An interactive mobile robotics workbench for studying the relationship between **path planning, robot geometry, and motion control**. Change the map, adjust the robot's footprint, compare planners and controllers, and inspect the resulting trajectory and telemetry.
 
-**v1.1** · JavaScript / HTML Canvas · No runtime dependencies · Offline-capable · MIT
+**v1.2** · JavaScript / HTML Canvas · No runtime dependencies · Offline-capable · MIT
 
 [Source code](https://github.com/Tanishk756/robonav-lab) · [Technical validation](docs/VALIDATION.md) · [Release notes](CHANGELOG.md)
 
@@ -42,7 +42,7 @@ No installation, API keys, backend, internet connection, Python, Node.js, or GPU
 
 ## Try these experiments
 
-1. **Search efficiency:** on Warehouse, click **Compare planners**. Compare optimal path cost and expanded cells. Timings are medians of 25 measured searches and vary by machine.
+1. **Search efficiency:** on Warehouse, click **Compare planners**. Compare weighted path cost and expanded cells; only A* and Dijkstra guarantee optimal cost. Timings are medians of 25 measured searches and vary by machine.
 2. **Control trade-off:** click **Compare controllers**. Compare simulation time, driven distance and tracking RMSE under identical settings. A smoother/faster route may have higher path error.
 3. **Footprint constraints:** expand **Robot configuration**, increase the robot radius, and inspect the orange excluded cells. A narrow opening can become unreachable.
 4. **Online replanning:** run a mission and click **Block route ahead**. The map and route update; LiDAR observes the inserted obstacle.
@@ -56,7 +56,7 @@ Configuration changes reset the current mission. Save your map before closing: e
 - **Plan route:** stop and replan from the current robot cell.
 - **Wall / Erase:** click or drag. **Start / Goal:** move endpoints while stopped.
 - **Robot configuration:** radius 0.15–0.70 m, margin 0–0.30 m, pursuit lookahead 0.4–1.6 m.
-- **Layers:** LiDAR, explored nodes, footprint inflation and driven trajectory.
+- **Layers:** LiDAR, explored nodes, hard footprint inflation, soft proximity costmap and driven trajectory.
 - **Keyboard:** Space runs/pauses, R resets, 1–4 select editing tools outside form controls. Focus the canvas, use arrows to select a cell, and press Enter to edit it.
 
 The outer boundary and mission endpoints are protected from wall painting. Cells touching the current robot plus margin are protected. Physics pauses during pointer drawing and replans after release.
@@ -67,7 +67,7 @@ The outer boundary and mission endpoints are protected from wall painting. Cells
 
 One cell is one metre. X increases right, Y increases down, and positive heading rotates clockwise on screen. This is a screen convention, not the ROS world-frame convention.
 
-Orthogonal edges cost 1 m; diagonal edges cost √2 m. A* uses:
+Orthogonal edges have length 1 m; diagonal edges have length √2 m. A* uses:
 
 `h = max(dx, dy) + (√2 − 1) × min(dx, dy)`
 
@@ -87,7 +87,7 @@ Robot configuration exposes a soft band (default 1.5 m), proximity weight (2), a
 
 `penalty = clamp(1 - (d - clearance) / softBand, 0, 1) ** costDecay`
 
-The penalty is zero beyond the band. Higher exponents concentrate the penalty near the hard envelope. Each graph edge costs `length * (1 + costWeight * (penaltyA + penaltyB) / 2)`. Both planners minimize this weighted cost; the octile distance remains an admissible A* heuristic. The soft layer is a cell-centre proximity preference, not a continuous safety guarantee. Hard segment and motion checks still enforce clearance independently.
+The penalty is zero beyond the band. Higher exponents concentrate the penalty near the hard envelope. Each graph edge costs `length * (1 + costWeight * (penaltyA + penaltyB) / 2)`. A* and Dijkstra minimize this weighted cost; the octile distance remains an admissible A* heuristic. The soft layer is a cell-centre proximity preference, not a continuous safety guarantee. Hard segment and motion checks still enforce clearance independently.
 
 Purple shading represents increasing proximity penalty and has its own layer toggle. A zero weight or zero band restores distance-only planning. The planned-route metric and CSV `path_m` report geometric length; weighted cost is reported separately. Costmap build time is measured separately from search time. Derived layers rebuild on planning/map/configuration changes, outside the render loop.
 
@@ -130,7 +130,7 @@ node benchmark.cjs
 node benchmark.cjs > my-results.csv
 ```
 
-The release includes **20 passing automated tests**. Checks include shortest paths, inaccessible endpoints, corner constraints, raycasting, drive integration, narrow-passage footprint rejection, control completion, replanning, deterministic benchmarks and UI-adapter interactions.
+The release includes **30 passing automated tests**. Checks include shortest paths, inaccessible endpoints, corner constraints, raycasting, drive integration, narrow-passage footprint rejection, control completion, replanning, deterministic benchmarks and UI-adapter interactions.
 
 The pursuit test covers both planners on four maps at 0.4, 1.6 and 3.0 m/s. These are finite scenario tests, not a guarantee for every custom map or configuration. See [validation](docs/VALIDATION.md) for scope and limitations. `sample-results.csv` contains actual benchmark output from this release.
 
@@ -150,11 +150,13 @@ docs/                Design, validation and portfolio notes
 
 Pose is ground truth and the occupancy map is fully known. LiDAR is visualised independently; it does not perform SLAM or discover obstacles for planning. Runtime insertions update the known map immediately. There is no moving-obstacle prediction, motor dynamics, acceleration limiting, friction, slip, localisation noise, ROS interface, or real-robot validation. Robot geometry is circular and the grid resolution is fixed.
 
-Actual browser rendering and file-dialog behaviour still need browser QA; the automated UI tests use a DOM test double with no-op canvas methods. Long sessions retain growing trajectory and telemetry arrays.
+A headless Edge smoke check verifies native planner options, all environment/planner selections and basic controls, with a rendered screenshot inspected. Cross-browser, interactive mobile and file-dialog behavior still need manual QA; automated adapter tests use a DOM double. Long sessions retain growing trajectory and telemetry arrays.
 
 ## Publish with GitHub Pages
 
-The repository includes `.nojekyll` and relative asset paths. In repository **Settings → Pages**, select **Deploy from a branch**, choose **main** and **/ (root)**, and save. GitHub will show the live URL after deployment succeeds. Future pushes to that source branch update the site. Publishing configuration is separate from pushing source code.
+The repository includes a GitHub Actions Pages workflow. In repository Settings > Pages, select **GitHub Actions** as the source. Pushes to main run syntax checks, all tests and the 80-mission benchmark before deployment. A failed check prevents publication. The workflow uploads the root static site with relative asset paths; no backend is required.
+
+After an update, reload the page. The release badge should say **v1.2**, and the Path planner dropdown should contain five entries. If an older page is cached, use Ctrl+F5 or reopen the Desktop index.html. The missing-options issue in the previous build was an HTML defect, corrected in v1.2.
 
 ## Maintainer
 
@@ -181,4 +183,4 @@ Compare planners runs all five with one warm-up and 25 measured searches each. R
 
 The original Warehouse, Alternating corridors, Seeded clutter, and Open floor maps are joined by Office suites (walls, doors, desks), Slalom barriers (alternating long barriers), Four rooms (cross walls with doorways), and Loading dock (cargo blocks and bays). Every preset is deterministic and shares the existing protected start/goal locations. Narrow doorways can correctly become unreachable when the hard robot safety radius is increased.
 
-The development suite has 29 tests. The expanded benchmark covers all eight environments, five planners, and both controllers: 80 default-configuration missions. See docs/planner-results.csv for a local benchmark snapshot; timings depend on the machine.
+The development suite has 30 tests. The expanded benchmark covers all eight environments, five planners, and both controllers: 80 default-configuration missions. See [sample-results.csv](sample-results.csv) and its matching [documentation copy](docs/planner-results.csv) for a local benchmark snapshot; timings depend on the machine.

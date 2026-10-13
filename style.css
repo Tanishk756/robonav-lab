@@ -6,3 +6,5 @@
 @media(prefers-reduced-motion:reduce){button{transition:none}}
 
 .robot-config{margin-top:18px;border:1px solid var(--border);border-radius:6px;padding:10px}.robot-config summary{cursor:pointer;color:var(--teal);font-size:13px}.robot-config input[type=number]{width:100%;min-height:36px;border:1px solid #344155;border-radius:5px;background:#1a2535;color:var(--text);padding:7px}.robot-config label{margin-top:12px}.robot-config .hint{margin-bottom:0}footer a{color:var(--teal);text-decoration:none}footer a:hover{text-decoration:underline}@media(max-width:750px){.controls>.robot-config{grid-column:1/-1;grid-row:6}.controls>.range-label{grid-row:4}}
+
+@media(max-width:750px){.controls>select#scenario{grid-column:1;grid-row:3}.controls>select#algorithm{grid-column:2;grid-row:3}}

@@ -1,48 +1,39 @@
-# Validation — RoboNav Lab v1.1
+# Validation - RoboNav Lab v1.2
 
-Date: 2026-09-13. Runtime: Node.js 24.19.0 on Linux.
+Date: 2026-10-13. Runtime: Node.js 24.19.0 on Windows.
 
 ## Automated results
 
-**20 tests passed; zero failures.** Captured output: [test-output.txt](test-output.txt).
+30 tests passed; zero failures. Captured output: [test-output.txt](test-output.txt).
 
-```sh
+```
+node --check core.js
+node --check app.js
 node --test tests/core.test.cjs tests/ui.test.cjs
 node benchmark.cjs
 ```
 
-The benchmark contains 16 combinations: four maps × two planners × two controllers, at 1.6 m/s, radius 0.24 m and margin 0.12 m. **All 16 reached the goal.** Actual measurements are in [sample-results.csv](../sample-results.csv).
-
-The pursuit test separately covers four maps × two planners × three speed settings (0.4, 1.6 and 3.0 m/s). Every mission reached its goal; each committed step was checked against the configured circular clearance footprint.
-
-## Warehouse example
-
-Same A* path, 1.6 m/s cruise setting, 0.24 m radius, 0.12 m margin:
-
-| Controller | Simulation time (s) | Driven distance (m) | Tracking RMSE (m) |
-|---|---:|---:|---:|
-| Waypoints | 37.866667 | 36.343108 | 0.026894 |
-| Guarded pursuit | 29.516667 | 35.187207 | 0.074167 |
-
-This shows a time/error trade-off in one idealised scenario. It is not evidence that pursuit is universally superior. Corner rounding and arrival tolerance can make driven distance shorter than the grid path length.
+The benchmark runs eight maps x five planners x two controllers at 1.6 m/s, radius 0.24 m, margin 0.12 m, soft band 1.5 m, weight 2 and decay 2. All 80 missions reached the goal. [sample-results.csv](../sample-results.csv) and [planner-results.csv](planner-results.csv) contain identical current measurements; timing depends on hardware and scheduling.
 
 ## Coverage
 
-- Known optimal grid route, unreachable/occupied endpoints, corner-cut prohibition and planner cost agreement.
-- LiDAR wall intersection and exact straight/curved differential-drive integration.
-- Default waypoint missions and speed extrema.
-- Footprint inflation rejects a narrow passage for a larger robot without changing physical occupancy.
-- Graph transitions pass conservative segment-clearance checks.
-- Pursuit completion matrix, dynamic insertion/replanning and deterministic complete-mission comparisons.
-- Invalid robot configuration rejection.
-- UI-adapter initialization, run/pause/reset, editing, configuration changes, comparisons, exports, malformed imports and legacy/current map imports.
+- A*/Dijkstra optimal weighted cost agreement across eight maps; wider-route preference and zero-weight equivalence.
+- All five planners: valid endpoints, no corner cutting, sampled edge clearance, reported length/cost consistency, unreachable goals and explicit unknown-planner rejection.
+- BFS fewest steps across the compared routes; approximate planners have no claimed optimality guarantee.
+- Every new map/planner/controller combination completes with each committed pose checked against the circular clearance footprint.
+- Original four-map pursuit matrix covers A*/Dijkstra at 0.4, 1.6 and 3 m/s. The entire parameter range is not exhaustively tested.
+- Physical occupancy/LiDAR preservation, decaying proximity costs, edited-map rebuilding, tangency regression, configuration validation and legacy/current imports.
+- Real HTML option lists match engine catalogs. The DOM test double now rejects nonexistent select values, modeling native browser behavior.
+- UI adapter: editing, transport, comparisons, configuration, exports, malformed imports and new planner settings round trips.
 
-## Validation limits
+## Actual browser check
 
-UI-adapter tests use a minimal DOM double and no-op canvas. They test code paths, not rendered layout, actual browser downloads or file pickers. Visual browser QA was blocked by the provided browser's local-file access policy. No claim of cross-browser certification, Windows execution testing, formal safety guarantees or hardware validation is made.
+Installed Microsoft Edge ran the local page headlessly. Verified five native planner options, eight environments, all 40 planner/environment selections, five comparison rows, layer toggling and run/pause. The rendered desktop page was inspected. Evidence: [browser-check.txt](browser-check.txt), [screenshot](browser-smoke.png).
 
-Custom maps and the full continuous configuration range are not exhaustively tested. Conservative guards can stop a mission that has a valid graph route. Sub-millisecond timing differences depend on runtime warm-up, CPU scheduling and timer resolution. Planner timing excludes inflation preprocessing.
+This smoke check does not certify cross-browser behavior, native popup appearance, file pickers/download prompts, interactive mobile layout or exhaustive visual correctness. The previous missing dropdown options were a markup defect, not a cache issue.
 
-## Browser acceptance checklist
+## Limits and manual acceptance
 
-Open index.html, verify branding and map, run both controllers, change footprint size, insert an obstacle, compare planners/controllers, export and re-import map/settings, download CSV/PNG, and resize the browser. All functions operate without an external API.
+No hardware validation or formal continuous collision guarantee is claimed. Straight edges and predicted motion use conservative/sample-based checks. Custom maps and every continuous configuration are not exhaustive. Search time excludes costmap construction, displayed separately. Long missions retain growing telemetry arrays. Comparisons execute synchronously on the fixed small grid.
+
+For manual acceptance, open index.html and verify v1.2, open the native dropdown and see all five choices, resize to mobile, expand robot settings, run both controllers, alter inflation, edit walls, import/export settings, and download CSV/PNG. For GitHub Pages select Actions as the source; the workflow checks syntax, tests and benchmark success before deployment.

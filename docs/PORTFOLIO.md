@@ -6,11 +6,11 @@ A browser-based mobile robotics workbench that connects grid planning to footpri
 
 ## Resume description
 
-Developed RoboNav Lab, an offline mobile robot simulator integrating A*/Dijkstra, configurable footprint inflation, differential-drive kinematics and guarded pure pursuit; evaluated navigation with repeatable scenarios, tracking RMSE and CSV telemetry.
+Developed RoboNav Lab, an offline mobile robot simulator integrating five graph planners, configurable hard and graded soft inflation, differential-drive kinematics and guarded pure pursuit; evaluated navigation with repeatable scenarios, tracking RMSE and CSV telemetry.
 
 ## Demonstration
 
-1. Compare A* and Dijkstra and explain the shared optimal graph cost.
+1. Compare all five planners on eight environments. Explain why A* and Dijkstra agree on optimal weighted graph cost, while approximate planners and BFS have different objectives.
 2. Increase the robot radius and explain configuration-space occupancy.
 3. Compare waypoint control and guarded pure pursuit using travel time and RMSE.
 4. Run a mission, insert an obstacle, and demonstrate replanning.

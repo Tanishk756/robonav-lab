@@ -1,0 +1,2 @@
+Microsoft Edge headless local-file smoke test
+PASS: five native planner options, eight environments, all 40 selections, five comparison rows and run/pause.

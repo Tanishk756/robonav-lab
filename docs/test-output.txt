@@ -1,28 +1,38 @@
-✔ both planners find the known shortest diagonal route (4.691411ms)
-✔ unreachable goal and occupied endpoint are rejected (2.601893ms)
-✔ diagonal corner cutting is forbidden (1.060758ms)
-✔ planner costs agree on repeatable scenarios (8.343638ms)
-✔ raycast measures exact wall distance (0.609973ms)
-✔ differential drive integrates straight and curved motion (0.959478ms)
-✔ controller completes every preset without a collision (133.403811ms)
-✔ all presets complete at minimum and maximum configurable speeds (163.055175ms)
-✔ inserting an obstacle forces a valid replan (11.527917ms)
-✔ map import rejects malformed maps (1.268066ms)
-✔ inflation closes a passage too narrow for the robot and preserves sensor map (12.886082ms)
-✔ planning transitions respect circular footprint clearance (3.538276ms)
-✔ pure pursuit completes all presets for both planners at all speed settings (796.730094ms)
-✔ pure pursuit handles an inserted obstacle and repeated experiments are deterministic (29.128626ms)
-✔ invalid robot settings are rejected (0.328195ms)
-✔ UI initializes, runs, pauses, replans, compares, exports, and resets (395.298812ms)
-✔ map editor and preset controls invalidate comparison and change route (248.115469ms)
-✔ invalid map import gives a readable error and preserves the app (7.789162ms)
-✔ robot configuration resets mission and controller comparison exports results (68.375329ms)
-✔ map import restores robot settings and accepts legacy maps (33.614942ms)
-ℹ tests 20
+✔ both planners find the known shortest diagonal route (3.3587ms)
+✔ unreachable goal and occupied endpoint are rejected (1.8784ms)
+✔ diagonal corner cutting is forbidden (0.2096ms)
+✔ planner costs agree on repeatable scenarios (1.8403ms)
+✔ raycast measures exact wall distance (0.3318ms)
+✔ differential drive integrates straight and curved motion (0.3113ms)
+✔ controller completes every preset without a collision (53.9667ms)
+✔ all presets complete at minimum and maximum configurable speeds (76.4792ms)
+✔ inserting an obstacle forces a valid replan (4.1445ms)
+✔ map import rejects malformed maps (0.4436ms)
+✔ inflation closes a passage too narrow for the robot and preserves sensor map (5.5278ms)
+✔ planning transitions respect circular footprint clearance (1.9294ms)
+✔ pure pursuit completes all presets for both planners at all speed settings (498.7303ms)
+✔ pure pursuit handles an inserted obstacle and repeated experiments are deterministic (24.0001ms)
+✔ invalid robot settings are rejected (0.2336ms)
+✔ costmap penalties decay outside the hard envelope without changing occupancy or LiDAR (0.5457ms)
+✔ weighted planners agree and proximity costs prefer a wider route (5.459ms)
+✔ costmap rebuild follows map edits and soft settings do not expand hard clearance (3.1272ms)
+✔ clearance checks reject tangency, corners and out-of-map footprints (0.1499ms)
+✔ all planners find safe routes on every deterministic environment (88.9244ms)
+✔ every planner rejects unreachable goals and unknown choices fail explicitly (10.441ms)
+✔ all new environments and planners complete collision-free controller missions (350.306ms)
+✔ UI initializes, runs, pauses, replans, compares, exports, and resets (304.5436ms)
+✔ map editor and preset controls invalidate comparison and change route (198.9176ms)
+✔ invalid map import gives a readable error and preserves the app (3.7146ms)
+✔ robot configuration resets mission and controller comparison exports results (37.4748ms)
+✔ map import restores robot settings and accepts legacy maps (17.8287ms)
+✔ costmap controls, weighted comparison and versioned settings round trip (302.3989ms)
+✔ new planner selections and environments work and import/export preserves planner (553.1583ms)
+✔ real HTML select options exactly match engine planner and environment catalogs (6.3426ms)
+ℹ tests 30
 ℹ suites 0
-ℹ pass 20
+ℹ pass 30
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1504.833031
+ℹ duration_ms 1518.8104

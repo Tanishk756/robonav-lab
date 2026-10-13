@@ -1,16 +1,18 @@
-# RoboNav Lab v1.1 design
+# RoboNav Lab v1.2 design
 
-Maintainer: Tanishk Singhal.
+Maintainer: Tanishk Singhal. Dependency-free offline runtime; engine and DOM adapter remain separate.
 
-The existing offline simulator is extended without introducing runtime dependencies. The robotics engine remains independent of the browser adapter.
+1. core.js owns five planner definitions and eight deterministic environment definitions.
+2. index.html supplies the selectable options; tests require exact parity with engine catalogs.
+3. Physical occupancy feeds LiDAR and circular collision checks unchanged.
+4. Hard occupancy expands obstacles by radius + margin. Soft penalties use distance outside that envelope.
+5. Five graph searches share safe neighbours and weighted edge reporting. Only A* and Dijkstra guarantee minimum weighted graph cost. BFS minimizes steps. Weighted A* and greedy are approximate.
+6. Waypoints or guarded pursuit generate wheel commands; exact constant-command integration advances the circular robot at 1/60 s.
+7. app.js renders layers, compares every planner, and exports settings with version 2. Legacy maps use defaults for missing fields.
+8. benchmark.cjs derives its 80 mission combinations from the same catalogs.
 
-1. Physical occupancy is retained for sensors and footprint collision checks.
-2. Configuration-space occupancy is derived from robot radius plus margin.
-3. A*/Dijkstra searches valid cell centres and checks clearance on candidate edges.
-4. A waypoint controller or guarded pursuit controller produces wheel commands.
-5. Exact constant-command integration advances the circular robot at 1/60 s.
-6. Metrics and benchmark runs use the same engine. UI exports map and settings together.
+Default radius 0.24 m, margin 0.12 m, lookahead 0.9 m, soft band 1.5 m, weight 2, decay 2. Configuration changes reset the mission; edits replan. Costmap rebuilding occurs during reset/planning, outside rendering. Search timing excludes preprocessing. UI comparisons remain synchronous on the small fixed grid.
 
-Configuration changes reset the mission; map edits trigger replanning. Invalid configuration and maps produce explicit errors. Complete-mission comparisons are bounded to 600 simulation seconds. The default robot radius is 0.24 m with 0.12 m margin and 0.9 m pursuit lookahead.
+There is no SLAM, local reactive planner, localization noise or ROS bridge. Straight-edge clearance is conservatively sampled, not an exact swept-body solver. Motion guards check sampled predicted poses.
 
-Publication uses ordinary static GitHub Pages hosting from main/root. No account data, external APIs or secrets are part of the application.
+GitHub Pages uses the Actions workflow, gated by tests and benchmarks. No accounts, secrets or external runtime APIs are required. See VALIDATION.md for test scope and IMPLEMENTATION-PLAN.md for remaining work.

@@ -31,6 +31,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate application
+        run: |
+          node --check core.js
+          node --check app.js
+          node --test tests/core.test.cjs tests/ui.test.cjs
+          node benchmark.cjs > /tmp/robonav-benchmark.csv
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

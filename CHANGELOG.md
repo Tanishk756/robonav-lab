@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0 - 2026-10-13
+
+- Added continuous obstacle inflation and a visible robot safety envelope.
+- Added configurable graded costmap with separate length, weighted cost and build timing.
+- Added Weighted A*, Greedy best-first and BFS, and four additional environments.
+- Fixed missing planner options in the actual HTML dropdown; tested catalog parity and native select behavior.
+- Fixed one-sided obstacle tangency and mobile selector placement.
+- Added versioned settings, expanded exports, 80-mission benchmarks and updated documentation.
+- Added validation gates before GitHub Pages publication.
+
+
 ## 1.1.0 — 2026-09-13
 
 - Added Tanishk Singhal's name, project attribution, profile link, author metadata and copyright.
