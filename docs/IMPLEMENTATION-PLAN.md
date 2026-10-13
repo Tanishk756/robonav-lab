@@ -1,18 +1,20 @@
 # RoboNav Lab implementation status and roadmap
 
-## Delivered through v1.5
+## Delivered through v1.6
+
+- Bidirectional Dijkstra/BFS, Fringe Search, Theta* and Euclidean/Chebyshev A* variants; eleven selectable choices with collision-safe graph/shortcut checks.
 
 - Guided demo, four separate challenge categories, route overlays, synchronized controller playback, bounded recorded replay and PNG/HTML result reports.
 - Opt-in local counters; first-time human and physical-device protocols remain unexecuted follow-up work.
 - Account-free shared experiment URLs, custom-map encoding, six-example gallery and versioned report export.
 - Contributor/security/community guides, issue/PR templates, deterministic release packaging, PR browser tests and live deployment checks.
-- Five global planners and eight deterministic environments with shared hard/soft costmaps.
+- Eleven planner choices and eight deterministic environments with shared hard/soft costmaps.
 - Exact straight-segment/occupied-rectangle clearance and curved-step conservative sagitta bounds.
 - LiDAR-derived log-odds occupancy mapping, independent ground-truth/observed views and explicit unknown-space policies.
 - Acceleration-window Dynamic Window controller, deterministic yielding grid carts, debounced replanning and bounded wait/replan recovery.
 - Mission explanation panel and clearance, angular-motion, acceleration, replanning and recovery metrics.
 - Worker-based comparisons with offline fallback, reusable JSON experiment settings and version-three import/export.
-- Mapping/control/worker regression tests, 120 static benchmark missions, 12 sensor/dynamic benchmark missions and real Edge HTTP/offline checks.
+- Mapping/control/worker regression tests, 264 static benchmark missions, 12 sensor/dynamic benchmark missions and real Edge HTTP/offline checks.
 
 Known-map navigation remains the baseline. Sensor mode receives scan-derived occupancy, not hidden world cells; the simulator retains a separate final physical guard. This is occupancy mapping with ground-truth pose, not SLAM or localization. Carts are discrete and cooperative, not general pedestrian avoidance.
 

@@ -32,7 +32,7 @@ test('UI initializes, runs, pauses, replans, compares, exports, and resets',()=>
   assert.notEqual(n.get('poseX').textContent,'3.50 m');
   n.get('obstacle').click();assert.equal(n.get('replans').textContent,1);
   n.get('run').click();assert.equal(n.get('status').textContent,'Mission paused');
-  n.get('compare').click();assert.equal(n.get('results').children.length,5);assert.equal(n.get('exportResults').disabled,false);
+  n.get('compare').click();assert.equal(n.get('results').children.length,Object.keys(require('../core.js').PLANNERS).length);assert.equal(n.get('exportResults').disabled,false);
   n.get('exportResults').click();n.get('exportTelemetry').click();n.get('saveMap').click();n.get('snapshot').click();assert.equal(downloads.length,4);
   n.get('help').click();assert.equal(n.get('guide').open,true);n.get('closeGuide').click();assert.equal(n.get('guide').open,false);
   n.get('reset').click();assert.equal(n.get('poseX').textContent,'3.50 m');assert.equal(n.get('status').textContent,'Ready to navigate');
@@ -88,14 +88,14 @@ test('costmap controls, weighted comparison and versioned settings round trip',a
 
 test('new planner selections and environments work and import/export preserves planner',async()=>{
   const {nodes:n,blobs}=boot();
-  for(const name of ['office','slalom','rooms','loading'])for(const planner of ['weighted','greedy','bfs']){
+  for(const name of ['office','slalom','rooms','loading'])for(const planner of Object.keys(require('../core.js').PLANNERS)){
     n.get('scenario').value=name;n.get('scenario').onchange();
     n.get('algorithm').value=planner;n.get('algorithm').onchange();
     assert.equal(n.get('status').textContent,'Ready to navigate');
   }
-  n.get('saveMap').click();const data=JSON.parse(await blobs.at(-1).text());assert.equal(data.algorithm,'bfs');assert.equal(data.name,'loading');
+  n.get('saveMap').click();const data=JSON.parse(await blobs.at(-1).text());assert.equal(data.algorithm,'chebyshev');assert.equal(data.name,'loading');
   await n.get('mapFile').onchange({target:{files:[{size:5000,text:async()=>JSON.stringify(data)}],value:'map.json'}});
-  assert.equal(n.get('algorithm').value,'bfs');n.get('compare').click();assert.equal(n.get('results').children.length,5);
+  assert.equal(n.get('algorithm').value,'chebyshev');n.get('compare').click();assert.equal(n.get('results').children.length,Object.keys(require('../core.js').PLANNERS).length);
 });
 
 
@@ -129,7 +129,7 @@ test('worker comparisons stay asynchronous and discard stale responses',()=>{
   assert.equal(n.get('exportResults').disabled,true);assert.equal(n.get('compare').disabled,false);
   n.get('compare').click();const current=worker.messages.at(-1);
   worker.onmessage({data:{id:current.id,result:require('../core.js').comparePlanners(current.map,current.settings)}});
-  assert.equal(n.get('results').children.length,5);assert.equal(n.get('exportResults').disabled,false);
+  assert.equal(n.get('results').children.length,Object.keys(require('../core.js').PLANNERS).length);assert.equal(n.get('exportResults').disabled,false);
 });
 
 
@@ -137,7 +137,7 @@ test('worker failure falls back to the same comparison engine',()=>{
   let worker;
   class FailingWorker{constructor(){worker=this;}postMessage(){}terminate(){}}
   const {nodes:n}=boot({Worker:FailingWorker});n.get('compare').click();worker.onerror();
-  assert.equal(n.get('compare').disabled,false);assert.equal(n.get('results').children.length,5);
+  assert.equal(n.get('compare').disabled,false);assert.equal(n.get('results').children.length,Object.keys(require('../core.js').PLANNERS).length);
   assert.equal(n.get('exportResults').disabled,false);
 });
 
@@ -147,7 +147,7 @@ test('gallery loads sensor settings and sharing preserves a custom experiment',a
   assert.equal(n.get('navigation').value,'sensor');assert.equal(n.get('controller').value,'dwa');assert.equal(n.get('showObserved').checked,true);
   await n.get('shareExperiment').onclick();const link=n.get('shareLink').value;assert.ok(link.startsWith('https://tanishk756.github.io/robonav-lab/#experiment='));
   const e=require('../sharing.js').decode(require('../core.js'),link.split('#experiment=')[1]);assert.equal(e.robot.navigation,'sensor');
-  n.get('downloadReport').click();const report=JSON.parse(await blobs.at(-1).text());assert.equal(report.version,'1.5.1');assert.equal(report.experiment.robot.controller,'dwa');
+  n.get('downloadReport').click();const report=JSON.parse(await blobs.at(-1).text());assert.equal(report.version,'1.6.0');assert.equal(report.experiment.robot.controller,'dwa');
 });
 
 test('shared links load on startup and malformed links leave a usable default scene',()=>{
@@ -164,7 +164,7 @@ test('guided demo injects an obstacle, compares routes and pauses with recorded 
   assert.equal(n.get('status').textContent,'Mission in progress');
   for(let i=0;i<420;i++)raf.shift()(i*1000/60);
   assert.equal(n.get('status').textContent,'Mission paused');assert.ok(Number(n.get('replans').textContent)>0);
-  assert.equal(n.get('results').children.length,5);assert.match(n.get('demoText').textContent,/Demo complete/);
+  assert.equal(n.get('results').children.length,Object.keys(require('../core.js').PLANNERS).length);assert.match(n.get('demoText').textContent,/Demo complete/);
   assert.ok(Number(n.get('replayTime').max)>10);const pose=n.get('poseX').textContent;
   n.get('replayTime').value='0';n.get('replayTime').oninput();raf.shift()(8000);assert.match(n.get('replayLabel').textContent,/Replay/);
   n.get('exitReplay').click();raf.shift()(8200);assert.equal(n.get('poseX').textContent,pose);

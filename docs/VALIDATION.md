@@ -1,10 +1,10 @@
-# Validation - RoboNav Lab v1.5
+# Validation - RoboNav Lab v1.6
 
 Date: 2026-10-13. Runtime: Node.js 24.19.0 on Windows.
 
 ## Automated results
 
-**55 tests passed; zero failures.** Captured output: [test-output.txt](test-output.txt).
+**58 tests passed; zero failures.** Captured output: [test-output.txt](test-output.txt).
 
 ```
 node --test tests/core.test.cjs tests/ui.test.cjs tests/navigation.test.cjs tests/sharing.test.cjs tests/showcase.test.cjs
@@ -14,11 +14,13 @@ node benchmark-navigation.cjs
 
 JavaScript syntax and Git diff whitespace checks also pass. GitHub Actions validates pull requests, runs all tests and both benchmarks, checks the real browser interface and extracted offline package, then gates main-branch Pages deployment. A final job checks the deployed URL and share reload.
 
-The static benchmark covers eight environments x five planners x three controllers at 1.6 m/s and default hard/soft settings: **120/120 arrived (retained v1.3 engine snapshot; navigation engine is unchanged in v1.5)**. [sample-results.csv](../sample-results.csv) and [planner-results.csv](planner-results.csv) are identical saved results, including body clearance, angular travel, acceleration and recovery diagnostics.
+The static benchmark covers eight environments x eleven planner choices x three controllers at 1.6 m/s and default hard/soft settings: **264/264 arrived**. [sample-results.csv](../sample-results.csv) and [planner-results.csv](planner-results.csv) are identical saved results, including body clearance, angular travel, acceleration and recovery diagnostics.
 
-The navigation benchmark covers Open floor, Warehouse and Four rooms x known/sensor map x static/moving carts, with A* + DWA: **12/12 arrived (retained v1.3 navigation snapshot)**. Results: [navigation-results.csv](navigation-results.csv). This is a deterministic cooperative-cart smoke matrix, not evidence of general crowd avoidance.
+The navigation benchmark covers Open floor, Warehouse and Four rooms x known/sensor map x static/moving carts, with A* + DWA: **12/12 arrived**. Results: [navigation-results.csv](navigation-results.csv). This is a deterministic cooperative-cart smoke matrix, not evidence of general crowd avoidance.
 
 ## Regression coverage
+
+- Forty seeded weighted maps compare bidirectional Dijkstra, Fringe and A* variants against Dijkstra, and bidirectional BFS against BFS. Theta* tests check direct any-angle routes, blocked shortcuts, cost reconstruction and determinism. All eleven choices reject corner cutting and oversized-footprint doorways.
 
 - Optimal A*/Dijkstra weighted cost agreement, approximate planner route validity, BFS edge count, exact clearance, corners, unreachable endpoints and malformed configuration.
 - All engine planner/environment combinations; original speed-extreme and pursuit matrices; default new-environment/controller mission completion.
@@ -28,18 +30,18 @@ The navigation benchmark covers Open floor, Warehouse and Four rooms x known/sen
 - Deterministic grid carts preserve base occupancy and yield rather than step into the robot envelope.
 - Exact line-to-rectangle tangency and small-gap/corner cases; conservative curved-step chord envelopes are used by controller and final guards.
 - Bounded intentionally stalled recovery and legacy navigation defaults.
-- Actual HTML catalogs match all five planners, eight environments and three controllers. Native-style select assignment is modeled by the adapter double.
+- Actual HTML catalogs match all eleven planner choices, eight environments and three controllers. Native-style select assignment is modeled by the adapter double.
 - Version-three sensor/DWA/cart settings round trips; worker response handling rejects stale results, and worker errors use the same synchronous fallback engine.
 
 ## Sharing and gallery regressions
 
-All eight maps and five planners round-trip through bounded tokens, including Unicode names, custom cells and edited endpoints. Malformed/oversized encodings, unknown versions, invalid planners/speeds and malformed settings are rejected. Six gallery entries validate; intentional doorway and conservative-unknown examples produce the documented blocked outcomes. UI tests check report version, share startup, invalid-link recovery and gallery settings. Actual markup includes catalog parity for the gallery as well as planners/environments/controllers.
+All eight maps and eleven planner choices round-trip through bounded tokens, including Unicode names, custom cells and edited endpoints. Malformed/oversized encodings, unknown versions, invalid planners/speeds and malformed settings are rejected. Six gallery entries validate; intentional doorway and conservative-unknown examples produce the documented blocked outcomes. UI tests check report version, share startup, invalid-link recovery and gallery settings. Actual markup includes catalog parity for the gallery as well as planners/environments/controllers.
 
 ## Real browser integration
 
 `python tests/browser_smoke.py` uses installed Edge, a temporary localhost server and CDP. Python's websockets package is an optional development dependency; no Python or packages are needed by the application itself. ROBONAV_BROWSER can select another compatible executable.
 
-Verified five planners, eight environments, three controllers, all 40 native planner/environment selections, asynchronous planner/controller comparisons with viewport frames continuing, sensor/DWA/moving-cart controls with observed-map rendering, all six gallery examples and share encoding. A shared URL is navigated and explicitly reloaded into a fresh document; restored settings are asserted. Direct file opening was separately checked with ROBONAV_FILE_TEST=1. Desktop and mobile screenshots were captured and inspected. ROBONAV_BASE_URL targets a live deployment and ROBONAV_SOURCE_ROOT targets extracted release files; ROBONAV_BROWSER_OUTPUT keeps CI evidence outside tracked source.
+Verified eleven planner choices, eight environments, three controllers, all 88 native planner/environment selections, asynchronous planner/controller comparisons with viewport frames continuing, sensor/DWA/moving-cart controls with observed-map rendering, all six gallery examples and share encoding. A shared URL is navigated and explicitly reloaded into a fresh document; restored settings are asserted. Direct file opening was separately checked with ROBONAV_FILE_TEST=1. Desktop and mobile screenshots were captured and inspected. ROBONAV_BASE_URL targets a live deployment and ROBONAV_SOURCE_ROOT targets extracted release files; ROBONAV_BROWSER_OUTPUT keeps CI evidence outside tracked source.
 
 Evidence: [browser-check.txt](browser-check.txt), [desktop](browser-smoke.png), [mobile](browser-mobile.png). Native downloads/file-dialog prompts and all browsers/devices are not exhaustively covered.
 

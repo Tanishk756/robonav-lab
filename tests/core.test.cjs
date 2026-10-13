@@ -149,17 +149,18 @@ test('all planners find safe routes on every deterministic environment',()=>{
     assert.deepEqual(m,R.validateMap(R.makeMap(name)));
     const routes=Object.keys(R.PLANNERS).map(algorithm=>R.plan(grid,m.start,m.goal,algorithm,.36,m));
     assert.ok(Math.abs(routes[0].cost-routes[1].cost)<1e-9,name+' optimal cost');
-    for(const route of routes){
+    for(const [routeIndex,route] of routes.entries()){
+      const anyAngle=Object.keys(R.PLANNERS)[routeIndex]==='theta';
       assert.deepEqual(route.path[0],m.start);assert.deepEqual(route.path.at(-1),m.goal);
       let cost=0,length=0;
       for(let i=1;i<route.path.length;i++){
         const a=route.path[i-1],b=route.path[i],step=R.dist(a,b);
-        assert.ok(step<=Math.SQRT2+1e-9);assert.ok(R.segmentClear(m,R.center(a),R.center(b),.36));
-        if(a.x!==b.x&&a.y!==b.y){assert.equal(R.blocked(grid,a.x,b.y),false);assert.equal(R.blocked(grid,b.x,a.y),false);}
-        length+=step;cost+=step*(1+grid.weight*(grid.penalties[a.y*m.w+a.x]+grid.penalties[b.y*m.w+b.x])/2);
+        if(!anyAngle)assert.ok(step<=Math.SQRT2+1e-9);assert.ok(R.segmentClear(m,R.center(a),R.center(b),.36));
+        if(!anyAngle&&a.x!==b.x&&a.y!==b.y){assert.equal(R.blocked(grid,a.x,b.y),false);assert.equal(R.blocked(grid,b.x,a.y),false);}
+        length+=step;cost+=anyAngle?R.shortcutCost(grid,a,b):step*(1+grid.weight*(grid.penalties[a.y*m.w+a.x]+grid.penalties[b.y*m.w+b.x])/2);
       }
       assert.ok(Math.abs(route.cost-cost)<1e-9);assert.ok(Math.abs(route.length-length)<1e-9);
-      assert.ok(routes[4].path.length<=route.path.length,name+' BFS fewest steps');
+      if(!anyAngle)assert.ok(routes[4].path.length<=route.path.length,name+' BFS fewest steps');
     }
   }
 });
@@ -179,5 +180,39 @@ test('all new environments and planners complete collision-free controller missi
     const sim=new R.Simulation(R.makeMap(name),algorithm,1.6,{controller});sim.start();
     for(let i=0;i<36000&&sim.status==='running';i++){sim.step(1/60);assert.equal(R.collides(sim.map,sim.pose.x,sim.pose.y,sim.clearance),false);}
     assert.equal(sim.status,'arrived',`${name} ${algorithm} ${controller}`);
+  }
+});
+
+test('new optimal searches match Dijkstra and bidirectional BFS matches BFS on seeded weighted maps',()=>{
+  let seed=209;const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+  for(let trial=0;trial<40;trial++){
+    const w=12,h=10,m={w,h,cells:Array.from({length:w*h},()=>Number(random()<.22)),weight:trial%4,penalties:Array.from({length:w*h},()=>random())};
+    const start={x:1,y:1},goal={x:10,y:8};m.cells[13]=m.cells[106]=0;
+    const oracle=R.plan(m,start,goal,'dijkstra'),bfs=R.plan(m,start,goal,'bfs');
+    for(const algorithm of ['bidijkstra','fringe','euclidean','chebyshev']){
+      const p=R.plan(m,start,goal,algorithm);assert.equal(Boolean(p.path.length),Boolean(oracle.path.length),algorithm+' reachability');
+      if(p.path.length)assert.ok(Math.abs(p.cost-oracle.cost)<1e-8,algorithm+' weighted optimum');
+    }
+    assert.equal(R.plan(m,start,goal,'bibfs').path.length,bfs.path.length,'bidirectional minimum hops');
+  }
+});
+
+test('Theta star produces direct any-angle routes and collision-checked weighted shortcuts',()=>{
+  const m=R.makeMap('empty'),settings={costWeight:0,softBand:0},g=R.buildCostmap(m,settings);
+  const p=R.plan(g,m.start,m.goal,'theta',.36,m);
+  assert.equal(p.path.length,2);assert.ok(Math.abs(p.length-R.dist(m.start,m.goal))<1e-9);assert.equal(p.cost,p.length);
+  m.cells[12*m.w+16]=1;const grid=R.buildCostmap(m,{costWeight:8,softBand:3});
+  const a=R.plan(grid,m.start,m.goal,'theta',.36,m),b=R.plan(grid,m.start,m.goal,'theta',.36,m);
+  assert.deepEqual(a.path,b.path);assert.equal(a.cost,b.cost);assert.ok(a.cost>=a.length);
+  for(let i=1;i<a.path.length;i++)assert.ok(R.segmentClear(m,R.center(a.path[i-1]),R.center(a.path[i]),.36));
+});
+
+test('all eleven choices reject unsafe corners and oversized footprints and handle equal endpoints',()=>{
+  assert.equal(Object.keys(R.PLANNERS).length,11);assert.deepEqual(Object.keys(R.PLANNER_INFO),Object.keys(R.PLANNERS));
+  for(const algorithm of Object.keys(R.PLANNERS)){
+    assert.equal(R.plan({w:2,h:2,cells:[0,1,1,0]},{x:0,y:0},{x:1,y:1},algorithm).path.length,0,algorithm);
+    const m=R.makeMap('office'),grid=R.buildCostmap(m,{radius:.6});
+    assert.equal(R.plan(grid,m.start,m.goal,algorithm,.72,m).path.length,0,algorithm+' doorway');
+    const same=R.plan(m,m.start,m.start,algorithm);assert.equal(same.path.length,1);assert.equal(same.cost,0);assert.equal(same.length,0);
   }
 });

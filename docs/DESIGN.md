@@ -1,12 +1,12 @@
-# RoboNav Lab v1.5 architecture
+# RoboNav Lab v1.6 architecture
 
 Maintainer: Tanishk Singhal. Runtime remains dependency-free and offline-capable.
 
 - navigation.js: log-odds OccupancyMapper, deterministic grid carts, world composition and dynamic-window command selection.
-- core.js: five global planners, eight environments, exact straight-edge geometry, hard/soft costmaps, three controllers, simulation state, metrics and pure comparison functions. CommonJS loads navigation.js; browser script order loads it first.
+- core.js: eleven planner choices, eight environments, exact straight-edge geometry, hard/soft costmaps, three controllers, simulation state, metrics and pure comparison functions. CommonJS loads navigation.js; browser script order loads it first.
 - app.js: DOM controls, canvas views, telemetry, version-three JSON settings, CSV/PNG exports and experiment-worker lifecycle.
 - navigation-worker.js: imports the same engine and executes planner/controller experiments outside rendering. Unavailable workers use the same functions synchronously. Configuration/map changes invalidate stale results.
-- index.html and style.css: five actual planner options, eight environments, three controller options and responsive navigation controls. Tests check catalog parity and native-style select behavior.
+- index.html and style.css: eleven actual planner options, eight environments, three controller options and responsive navigation controls. Tests check catalog parity and native-style select behavior.
 
 World occupancy, observed occupancy and derived hard/soft costmaps are separate. Sensor planning and DWA receive only the observed navigation map. Ideal simulated LiDAR is the observation boundary. A final simulator-world motion guard prevents physical penetration without contributing hidden occupancy to planning. The display can independently show physical world or observed/unknown cells.
 

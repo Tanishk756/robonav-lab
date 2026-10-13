@@ -56,9 +56,9 @@ async def check(port, site_port):
           const assert=(value,message)=>{if(!value)throw Error(message);};
           const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
           const until=async condition=>{for(let i=0;i<800;i++){if(condition())return;await wait(25);}throw Error('asynchronous result timeout');};
-          assert(el('algorithm').options.length===5,'five planners');assert(el('scenario').options.length===8,'eight environments');
+          assert(el('algorithm').options.length===11,'eleven planners');assert(el('scenario').options.length===8,'eight environments');
           assert(el('controller').options.length===3,'three controllers');
-          assert(document.querySelector('.version').textContent.includes('v1.5'),'wrong deployed version');
+          assert(document.querySelector('.version').textContent.includes('v1.6'),'wrong deployed version');
           assert(el('example').options.length===6,'six examples');
           for(const id of Object.keys(window.RoboNavSharing.EXAMPLES)){el('example').value=id;el('loadExample').click();assert(el('example').value===id,'gallery selection');}
           el('example').value='discovery';el('loadExample').click();
@@ -80,7 +80,7 @@ async def check(port, site_port):
           el('algorithm').value='astar';el('algorithm').dispatchEvent(new Event('change'));
           let frames=0,watch=true;const frame=()=>{frames++;if(watch)requestAnimationFrame(frame);};requestAnimationFrame(frame);
           el('compare').click();const workers=el('compare').disabled;assert(workers||location.protocol==='file:','planner worker did not start');
-          await until(()=>!el('compare').disabled);assert(el('results').children.length===5,'comparison rows');
+          await until(()=>!el('compare').disabled);assert(el('results').children.length===11,'comparison rows');
           el('compareControllers').click();assert(el('compareControllers').disabled||location.protocol==='file:','controller worker did not start');
           await until(()=>!el('compareControllers').disabled);assert(el('controllerResults').children.length===3,'three controller rows');
           el('playComparison').click();await wait(200);assert(parseFloat(el('comparisonLabel').textContent)>0,'controller playback');
@@ -88,7 +88,7 @@ async def check(port, site_port):
           const nativeClick=HTMLAnchorElement.prototype.click,captured=[];HTMLAnchorElement.prototype.click=function(){if(this.download)captured.push({name:this.download,url:this.href});else nativeClick.call(this);};
           el('downloadCard').click();el('downloadHtml').click();HTMLAnchorElement.prototype.click=nativeClick;
           assert(captured.some(x=>x.name.endsWith('.png')&&x.url.startsWith('data:image/png')&&x.url.length>1000),'result PNG');
-          const report=await (await fetch(captured.find(x=>x.name.endsWith('.html')).url)).text();assert(report.includes('Reproduce the initial experiment')&&report.includes('1.5.1'),'readable report');
+          const report=await (await fetch(captured.find(x=>x.name.endsWith('.html')).url)).text();assert(report.includes('Reproduce the initial experiment')&&report.includes('1.6.0'),'readable report');
           watch=false;if(location.protocol!=='file:')assert(frames>1,'viewport blocked during worker comparison');
           el('scenario').value='warehouse';el('scenario').dispatchEvent(new Event('change'));
           for(const [id,value] of [['navigation','sensor'],['controller','dwa']]){el(id).value=value;el(id).dispatchEvent(new Event('change'));}
@@ -96,7 +96,7 @@ async def check(port, site_port):
           document.querySelector('.robot-config').open=true;
           el('run').click();await wait(1500);el('run').click();
           assert(el('status').textContent==='Mission paused','sensor mission failed');assert(parseFloat(el('coverage').textContent)>0,'missing scan coverage');
-          el('toast').hidden=true;return 'PASS ('+location.protocol+'): 5 planners, 8 environments, 3 controllers, 40 native selections, 6 gallery examples, share encoding, comparisons, sensor DWA with moving carts and observed map. HTTP mode additionally verifies workers and viewport responsiveness.';
+          el('toast').hidden=true;return 'PASS ('+location.protocol+'): 11 planners, 8 environments, 3 controllers, 88 native selections, 6 gallery examples, share encoding, comparisons, sensor DWA with moving carts and observed map. HTTP mode additionally verifies workers and viewport responsiveness.';
         })()"""
         result = await command("Runtime.evaluate", {"expression":expression,"awaitPromise":True,"returnByValue":True})
         if "exceptionDetails" in result:

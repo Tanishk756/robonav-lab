@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 - 2026-10-13
+
+- Added bidirectional Dijkstra, bidirectional BFS, Fringe Search and collision-checked Theta*.
+- Added Euclidean and Chebyshev A* variants; eleven selectable choices in total.
+- Updated real dropdown, colored overlays, shared experiments, objectives and cost-model-labeled exports.
+- Added weighted optimality, seeded maps, any-angle safety and footprint/corner regressions.
+- Expanded and regenerated the static benchmark to 264 missions; retained sensor/navigation regression coverage.
+
 ## 1.5.1 - 2026-10-13
 
 - Removed promotional materials and related website/documentation links.

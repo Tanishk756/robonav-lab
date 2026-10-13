@@ -13,7 +13,20 @@
   const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
 
   const CONTROLLERS={waypoint:'Waypoints',pursuit:'Guarded pursuit',dwa:'Dynamic window (DWA)'};
-  const PLANNERS={astar:'A*',dijkstra:'Dijkstra',weighted:'Weighted A* (1.8)',greedy:'Greedy best-first',bfs:'Breadth-first'};
+  const PLANNERS={astar:'A*',dijkstra:'Dijkstra',weighted:'Weighted A* (1.8)',greedy:'Greedy best-first',bfs:'Breadth-first',bidijkstra:'Bidirectional Dijkstra',bibfs:'Bidirectional BFS',fringe:'Fringe Search',theta:'Theta* (any-angle)',euclidean:'A* (Euclidean)',chebyshev:'A* (Chebyshev)'};
+  const PLANNER_INFO={
+    astar:'Octile heuristic; minimum weighted eight-connected grid cost.',
+    dijkstra:'Uniform-cost search; minimum weighted grid cost.',
+    weighted:'1.8 times octile heuristic; approximate weighted grid route.',
+    greedy:'Heuristic-only best-first search; no cost or distance optimum.',
+    bfs:'Minimum grid-edge count; ignores diagonal length and soft costs.',
+    bidijkstra:'Two uniform-cost frontiers; minimum weighted grid cost.',
+    bibfs:'Two breadth-first frontiers; minimum grid-edge count, not weighted cost.',
+    fringe:'Iterative f-threshold frontier search; minimum weighted grid cost.',
+    theta:'Any-angle parent shortcuts with collision checks; sampled soft line costs, no global optimum guarantee.',
+    euclidean:'A* with a Euclidean lower bound; minimum weighted grid cost.',
+    chebyshev:'A* with a Chebyshev lower bound; minimum weighted grid cost.'
+  };
   const ENVIRONMENTS={warehouse:'Warehouse aisles',corridors:'Alternating corridors',clutter:'Seeded clutter (731)',empty:'Open floor',office:'Office suites',slalom:'Slalom barriers',rooms:'Four rooms',loading:'Loading dock'};
 
   class Heap {
@@ -57,30 +70,96 @@
     return {version:1,name:typeof m.name==='string'?m.name.slice(0,60):'Imported map',w:m.w,h:m.h,cells:m.cells.slice(),start:{...m.start},goal:{...m.goal}};
   }
 
-  /** Shared safe graph; only A-star and Dijkstra guarantee minimum weighted cost. */
+  /** Shared collision-checked graph. Any-angle Theta* additionally validates shortcuts. */
   function plan(m,start,goal,algorithm='astar',clearance=0,physicalMap=m) {
     if(!Object.hasOwn(PLANNERS,algorithm))throw Error('Unknown planner.');
-    const began=now(),empty=()=>({path:[],cost:Infinity,length:Infinity,expanded:[],ms:now()-began});
-    if(blocked(m,start.x,start.y)||blocked(m,goal.x,goal.y))return empty();
-    const id=p=>p.y*m.w+p.x,s=id(start),t=id(goal),n=m.w*m.h;
-    const g=new Float64Array(n).fill(Infinity),parent=new Int32Array(n).fill(-1),closed=new Uint8Array(n),open=new Heap(),expanded=[],hops=new Float64Array(n).fill(Infinity);
-    const h=(x,y)=>{const dx=Math.abs(x-goal.x),dy=Math.abs(y-goal.y);return algorithm==='dijkstra'?0:Math.max(dx,dy)+(Math.SQRT2-1)*Math.min(dx,dy);};
-    const priority=(cost,heuristic,steps)=>algorithm==='greedy'?heuristic:algorithm==='weighted'?cost+1.8*heuristic:algorithm==='bfs'?steps:cost+heuristic;
-    g[s]=0;hops[s]=0;open.push({id:s,f:priority(0,h(start.x,start.y),0)});
-    while(open.a.length){
-      const u=open.pop().id;if(closed[u])continue;closed[u]=1;
-      const x=u%m.w,y=Math.floor(u/m.w);expanded.push({x,y});
-      if(u===t){const path=[];for(let v=t;v!==-1;v=parent[v])path.push({x:v%m.w,y:Math.floor(v/m.w)});path.reverse();const length=path.slice(1).reduce((sum,p,i)=>sum+dist(p,path[i]),0);return {path,cost:g[t],length,expanded,ms:now()-began};}
+    const began=now(),expanded=[],point=i=>({x:i%m.w,y:Math.floor(i/m.w)}),id=p=>p.y*m.w+p.x;
+    const result=(path=[],cost=Infinity)=>({path,cost,length:path.length?path.slice(1).reduce((sum,p,i)=>sum+dist(p,path[i]),0):Infinity,expanded,ms:now()-began});
+    if(blocked(m,start.x,start.y)||blocked(m,goal.x,goal.y))return result();
+    if(clearance>0&&(collides(physicalMap,start.x+.5,start.y+.5,clearance)||collides(physicalMap,goal.x+.5,goal.y+.5,clearance)))return result();
+    const s=id(start),t=id(goal),n=m.w*m.h;
+    const h=u=>{const p=point(u),dx=Math.abs(p.x-goal.x),dy=Math.abs(p.y-goal.y);
+      return algorithm==='dijkstra'?0:algorithm==='euclidean'||algorithm==='theta'?Math.hypot(dx,dy):algorithm==='chebyshev'?Math.max(dx,dy):Math.max(dx,dy)+(Math.SQRT2-1)*Math.min(dx,dy);};
+    const edge=(u,v)=>dist(point(u),point(v))*(1+(m.weight??0)*((m.penalties?.[u]??0)+(m.penalties?.[v]??0))/2);
+    const neighborCache=new Map();
+    const neighbors=u=>{
+      if(neighborCache.has(u))return neighborCache.get(u);
+      const {x,y}=point(u),out=[];
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
         if((!dx&&!dy)||blocked(m,x+dx,y+dy))continue;
         if(dx&&dy&&(blocked(m,x+dx,y)||blocked(m,x,y+dy)))continue;
         if(clearance>0&&!segmentClear(physicalMap,{x:x+.5,y:y+.5},{x:x+dx+.5,y:y+dy+.5},clearance))continue;
-        const v=(y+dy)*m.w+x+dx,c=g[u]+(dx&&dy?Math.SQRT2:1)*(1+(m.weight??0)*((m.penalties?.[u]??0)+(m.penalties?.[v]??0))/2);
+        out.push((y+dy)*m.w+x+dx);
+      }
+      neighborCache.set(u,out);return out;
+    };
+    const trace=(parent,u)=>{const path=[];for(let v=u;v!==-1;v=parent[v])path.push(point(v));return path.reverse();};
+    if(algorithm==='bidijkstra'||algorithm==='bibfs'){
+      const steps=algorithm==='bibfs',g=[new Float64Array(n).fill(Infinity),new Float64Array(n).fill(Infinity)],parents=[new Int32Array(n).fill(-1),new Int32Array(n).fill(-1)],closed=[new Uint8Array(n),new Uint8Array(n)],open=[new Heap(),new Heap()];
+      g[0][s]=0;g[1][t]=0;open[0].push({id:s,f:0});open[1].push({id:t,f:0});let best=Infinity,meet=-1,tie=0;
+      const clean=k=>{while(open[k].a.length&&(closed[k][open[k].a[0].id]||open[k].a[0].f!==g[k][open[k].a[0].id]))open[k].pop();};
+      while(true){
+        clean(0);clean(1);if(!open[0].a.length||!open[1].a.length)break;
+        if(open[0].a[0].f+open[1].a[0].f>=best)break;
+        const f0=open[0].a[0].f,f1=open[1].a[0].f,k=f0===f1?(tie++%2):Number(f1<f0),other=1-k,u=open[k].pop().id;
+        closed[k][u]=1;expanded.push(point(u));
+        if(g[k][u]+g[other][u]<best){best=g[k][u]+g[other][u];meet=u;}
+        for(const v of neighbors(u)){
+          const c=g[k][u]+(steps?1:edge(u,v));
+          if(!closed[k][v]&&c<g[k][v]){g[k][v]=c;parents[k][v]=u;open[k].push({id:v,f:c});}
+          if(g[k][v]+g[other][v]<best){best=g[k][v]+g[other][v];meet=v;}
+        }
+      }
+      if(meet<0)return result();
+      const path=trace(parents[0],meet).concat(trace(parents[1],meet).reverse().slice(1));
+      return result(path,path.slice(1).reduce((sum,p,i)=>sum+edge(id(path[i]),id(p)),0));
+    }
+    const g=new Float64Array(n).fill(Infinity),parent=new Int32Array(n).fill(-1);g[s]=0;
+    if(algorithm==='fringe'){
+      // Iterative f thresholds, retaining deferred nodes instead of a priority heap.
+      let limit=h(s),current=[s];const processed=new Float64Array(n).fill(Infinity);
+      while(current.length){
+        let nextLimit=Infinity;const later=new Set();
+        for(let i=0;i<current.length;i++){
+          const u=current[i],f=g[u]+h(u);
+          if(f>limit+1e-10){later.add(u);nextLimit=Math.min(nextLimit,f);continue;}
+          if(g[u]>=processed[u])continue;processed[u]=g[u];expanded.push(point(u));
+          if(u===t)return result(trace(parent,t),g[t]);
+          for(const v of neighbors(u)){const c=g[u]+edge(u,v);if(c<g[v]){g[v]=c;parent[v]=u;current.push(v);}}
+        }
+        current=Array.from(later);limit=nextLimit;
+      }
+      return result();
+    }
+    const closed=new Uint8Array(n),hops=new Float64Array(n).fill(Infinity),open=new Heap();hops[s]=0;
+    const priority=(cost,heuristic,steps)=>algorithm==='greedy'?heuristic:algorithm==='weighted'?cost+1.8*heuristic:algorithm==='bfs'?steps:cost+heuristic;
+    open.push({id:s,f:priority(0,h(s),0),g:0});
+    while(open.a.length){
+      const entry=open.pop(),u=entry.id;if(closed[u])continue;closed[u]=1;expanded.push(point(u));
+      if(u===t)return result(trace(parent,t),g[t]);
+      for(const v of neighbors(u)){
         if(closed[v])continue;
-        if(algorithm==='bfs'?hops[u]+1<hops[v]:c<g[v]){g[v]=c;hops[v]=hops[u]+1;parent[v]=u;open.push({id:v,f:priority(c,h(x+dx,y+dy),hops[v])});}
+        let from=u,c=g[u]+edge(u,v);
+        if(algorithm==='theta'&&parent[u]!==-1){
+          const ancestor=parent[u],a=center(point(ancestor)),b=center(point(v));
+          if(segmentClear(m,a,b,0)&&segmentClear(physicalMap,a,b,clearance)){
+            const candidate=g[ancestor]+shortcutCost(m,point(ancestor),point(v));
+            if(candidate<c){from=ancestor;c=candidate;}
+          }
+        }
+        if(algorithm==='bfs'?hops[u]+1<hops[v]:c<g[v]){g[v]=c;hops[v]=hops[u]+1;parent[v]=from;open.push({id:v,f:priority(c,h(v),hops[v]),g:c});}
       }
     }
-    return {path:[],cost:Infinity,length:Infinity,expanded,ms:now()-began};
+    return result();
+  }
+  // Theta* line cost: exact length, midpoint quadrature of the cell penalty field
+  // with <=0.25 m intervals. Adjacent grid edges retain the standard edge cost.
+  function shortcutCost(m,a,b){
+    const length=dist(a,b);
+    if(length<=Math.SQRT2+1e-9)return length*(1+(m.weight??0)*((m.penalties?.[a.y*m.w+a.x]??0)+(m.penalties?.[b.y*m.w+b.x]??0))/2);
+    const count=Math.ceil(length/.25);let sum=0;
+    for(let i=0;i<count;i++){const t=(i+.5)/count,x=Math.floor(a.x+.5+(b.x-a.x)*t),y=Math.floor(a.y+.5+(b.y-a.y)*t);sum+=m.penalties?.[y*m.w+x]??0;}
+    return length*(1+(m.weight??0)*sum/count);
   }
 
   /** Grid DDA raycast: exact intersection with axis-aligned cell boundaries. */
@@ -276,9 +355,9 @@
     for(const algorithm of Object.keys(PLANNERS)){
       plan(grid,map.start,map.goal,algorithm,clearance,map);const times=[];let p;
       for(let i=0;i<25;i++){p=plan(grid,map.start,map.goal,algorithm,clearance,map);times.push(p.ms);}
-      times.sort((a,b)=>a-b);results.push({algorithm,path:p.path,cost:Number.isFinite(p.cost)?p.cost:null,length:Number.isFinite(p.length)?p.length:null,expanded:p.expanded.length,ms:times[12],buildMs:grid.buildMs,status:p.path.length?'Reachable':'No route'});
+      times.sort((a,b)=>a-b);results.push({algorithm,objective:PLANNER_INFO[algorithm],costModel:algorithm==='theta'?'sampled-any-angle':'weighted-grid',path:p.path,cost:Number.isFinite(p.cost)?p.cost:null,length:Number.isFinite(p.length)?p.length:null,expanded:p.expanded.length,ms:times[12],buildMs:grid.buildMs,status:p.path.length?'Reachable':'No route'});
     }return results;
   }
-  const api={CONTROLLERS,comparePlanners,...N,PLANNERS,ENVIRONMENTS,makeMap,validateMap,plan,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,buildCostmap,obstacleDistance,segmentClear,config,pursuitTarget,benchmarkMission};
+  const api={PLANNER_INFO,CONTROLLERS,comparePlanners,...N,PLANNERS,ENVIRONMENTS,makeMap,validateMap,plan,shortcutCost,raycast,lidar,collides,integrate,Simulation,center,dist,blocked,inflateMap,buildCostmap,obstacleDistance,segmentClear,config,pursuitTarget,benchmarkMission};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.RoboNav=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

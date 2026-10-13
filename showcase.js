@@ -49,7 +49,7 @@
       return {...sim,...f,clearance:sim.clearance,events:this.events.filter(e=>e.time<=f.time).slice(-30).reverse().map(e=>({time:e.time,message:e.text})),pose:f.pose,navigationState:f.state,worldMap:world,map:world,path:scene.path,carts:scene.carts,carrot:null,planningMap:{...sim.planningMap,cells:scene.planning,penalties:scene.penalties},mapper:{seen:scene.seen,coverage:f.coverage,grid:()=>observed},rays:R.lidar(world,f.pose),trail:this.frames.slice(0,i+1).map(item=>item.pose)};
     }
   }
-  const COLORS=['#c5f46b','#4cd7cb','#ef99ff','#ffb86b','#7ba7ff'];
+  const COLORS=['#c5f46b','#4cd7cb','#ef99ff','#ffb86b','#7ba7ff','#ff799e','#63e29a','#ffe275','#ed8c60','#acb4ff','#a3d6ed'];
   function drawTrajectory(ctx,map,trajectory,time,width,height){
     const sx=width/map.w,sy=height/map.h;ctx.fillStyle='#0e1622';ctx.fillRect(0,0,width,height);
     ctx.fillStyle='#34465e';map.cells.forEach((v,i)=>{if(v)ctx.fillRect(i%map.w*sx,Math.floor(i/map.w)*sy,sx,sy);});

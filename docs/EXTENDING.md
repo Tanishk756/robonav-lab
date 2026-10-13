@@ -2,7 +2,7 @@
 
 ## Global planner
 
-Add a stable ID and label to core.js PLANNERS. Implement its search priority/behavior in plan while retaining safe-neighbor and edge validation; document its optimization objective. Add the matching index.html option. Comparisons, workers, benchmarks and import validation enumerate the shared catalog automatically. The actual-markup test rejects missing options. Test reachability, unsafe corners, cost/length reporting, determinism and the claimed optimality property. Current plan outputs are `{path, cost, length, expanded, ms}`; path coordinates are grid cells.
+Add a stable ID and label to core.js PLANNERS and objective to PLANNER_INFO. Implement its search priority/behavior in plan while retaining safe-neighbor and edge validation; document its optimization objective. Add the matching index.html option. Comparisons, workers, benchmarks and import validation enumerate the shared catalog automatically. The actual-markup test rejects missing options. Test reachability, unsafe corners, cost/length reporting, determinism and the claimed optimality property. Current plan outputs are `{path, cost, length, expanded, ms}`; path coordinates are cell centers expressed as grid indices. Theta* may connect nonadjacent indices; preserve shortcut collision validation and cost-model labeling. Add a unique showcase.js COLORS entry for the new planner.
 
 ## Controller
 

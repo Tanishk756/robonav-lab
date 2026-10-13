@@ -1,10 +1,10 @@
-ROBONAV LAB v1.5 - TANISHK SINGHAL
+ROBONAV LAB v1.6 - TANISHK SINGHAL
 
 Extract the full repository and open index.html. Keep all eight runtime files:
 index.html, style.css, navigation.js, core.js, showcase.js, sharing.js, app.js, navigation-worker.js.
 No backend, install, internet or API keys are needed to use it.
 
-Verify v1.5, five planners, eight environments and three controllers.
+Verify v1.6, eleven planner choices, eight environments and three controllers.
 For the new demo, expand Robot configuration:
 - Controller: Dynamic window (DWA)
 - Navigation map: LiDAR observed map

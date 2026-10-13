@@ -1,7 +1,7 @@
 /* Versioned, bounded experiment links. Occupancy is bit-packed, never executed. */
 (function(root){
   'use strict';
-  const VERSION='1.5.1',PUBLIC_URL='https://tanishk756.github.io/robonav-lab/';
+  const VERSION='1.6.0',PUBLIC_URL='https://tanishk756.github.io/robonav-lab/';
   const toBase64=bytes=>typeof Buffer!=='undefined'?Buffer.from(bytes).toString('base64'):btoa(String.fromCharCode(...bytes));
   const fromBase64=text=>typeof Buffer!=='undefined'?Uint8Array.from(Buffer.from(text,'base64')):Uint8Array.from(atob(text),c=>c.charCodeAt(0));
   const pack=bytes=>toBase64(bytes).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -34,7 +34,7 @@
     return validateExperiment(R,{version:1,w:32,h:24,name:c.n,cells:Array.from({length:768},(_,i)=>(bytes[i>>3]>>(i%8))&1),start:{x:c.s[0],y:c.s[1]},goal:{x:c.g[0],y:c.g[1]},robot:c.r,algorithm:c.a,speed:c.p,...(c.h!==undefined?{challenge:c.h}:{})});
   }
   const EXAMPLES={
-    warehouse:{title:'First mission',description:'Known warehouse map with A* and waypoints. Run, pause, then compare all five planners.',map:'warehouse',settings:{}},
+    warehouse:{title:'First mission',description:'Known warehouse map with A* and waypoints. Run, pause, then compare all eleven planners.',map:'warehouse',settings:{}},
     discovery:{title:'Discover the warehouse',description:'LiDAR mapping and DWA. Turn on the observed view and watch unknown space become mapped.',map:'warehouse',settings:{navigation:'sensor',controller:'dwa'}},
     carts:{title:'Moving cart encounter',description:'Sensor DWA with cooperative grid carts. Inspect clearance and replanning; carts yield to the robot.',map:'rooms',settings:{navigation:'sensor',controller:'dwa',movingObstacles:true}},
     clearance:{title:'Doorway does not fit',description:'A large robot cannot cross the one-cell office doors. Reduce radius plus margin below 0.5 m to investigate.',map:'office',settings:{radius:.6,margin:.12}},

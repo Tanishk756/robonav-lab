@@ -2,7 +2,7 @@
 
 ### Tanishk Singhal - Robotics & Automation
 
-**v1.5** - An offline mobile robotics workbench connecting global planning, robot geometry, LiDAR mapping and reactive motion control. JavaScript/HTML Canvas, no runtime packages or backend, MIT licensed.
+**v1.6** - An offline mobile robotics workbench connecting global planning, robot geometry, LiDAR mapping and reactive motion control. JavaScript/HTML Canvas, no runtime packages or backend, MIT licensed.
 
 [Source](https://github.com/Tanishk756/robonav-lab) | [Validation](docs/VALIDATION.md) | [Release notes](CHANGELOG.md) | [Roadmap](docs/IMPLEMENTATION-PLAN.md)
 
@@ -58,13 +58,21 @@ Configuration changes reset the mission. **Conservative: block unknown** can imm
 
 | Planner | Objective |
 | --- | --- |
-| A* | Minimum weighted graph cost using an octile heuristic |
-| Dijkstra | Minimum weighted graph cost without a heuristic |
-| Weighted A* | Cost + 1.8 times heuristic; no optimality guarantee here |
-| Greedy best-first | Prioritizes heuristic distance; approximate |
-| Breadth-first | Fewest grid edges, not minimum metres or proximity cost |
+| A* (Octile) | Minimum weighted eight-connected grid cost |
+| Dijkstra | Minimum weighted grid cost, without a heuristic |
+| Weighted A* (1.8) | Faster heuristic emphasis; no optimality guarantee here |
+| Greedy best-first | Heuristic-first approximate route |
+| Breadth-first | Fewest grid edges, not minimum metres or soft cost |
+| Bidirectional Dijkstra | Two uniform-cost frontiers; minimum weighted grid cost |
+| Bidirectional BFS | Two breadth-first frontiers; fewest grid edges |
+| Fringe Search | Iterative f-threshold search; minimum weighted grid cost |
+| Theta* | Collision-checked any-angle parent shortcuts; approximate sampled line cost |
+| A* (Euclidean) | A* variant with a Euclidean lower-bound heuristic |
+| A* (Chebyshev) | A* variant with a Chebyshev lower-bound heuristic |
 
-All five use an eight-connected graph, prevent diagonal corner cutting and check hard clearance along each edge. Compare planners runs one warm-up and 25 measured searches per planner on a snapshot of the current navigation map.
+These are **11 selectable planners, including three A* heuristic variants**, not 11 unrelated algorithm families. Ten use the same eight-connected graph with no diagonal corner cutting and exact footprint edge checks. Theta* also connects nonadjacent cell centers after checking the inflated grid and physical footprint; it is not constrained to grid directions. It retains adjacent-edge costs, and evaluates longer shortcut proximity costs using midpoint samples at intervals of at most 0.25 m. Its weighted cost therefore uses a different model and is labeled `sampled-any-angle` in exports. It has no global continuous-path optimality guarantee. The shortest **grid** challenge still requires the reference grid-route length.
+
+Compare planners runs one warm-up and 25 measured searches per choice on a snapshot of the current navigation map. Colors and dash patterns identify all eleven routes, with planner objectives on focus/hover and in the mission explanation. Bidirectional expansion counts include work from both frontiers; Fringe Search may re-expand improved nodes. Timings are measured, not promises that a particular algorithm will be faster. See [planner details and research references](docs/PLANNERS.md).
 
 Eight deterministic environments: Warehouse aisles, Alternating corridors, Seeded clutter (731), Open floor, Office suites, Slalom barriers, Four rooms and Loading dock. The fixed grid is 32 x 24 cells at 1 m per cell.
 
@@ -118,7 +126,7 @@ node benchmark.cjs
 node benchmark-navigation.cjs
 ```
 
-The regression suite has **55 passing tests**. The standard benchmark covers eight environments x five planners x three controllers: **120 missions**. [sample-results.csv](sample-results.csv) and [planner-results.csv](docs/planner-results.csv) are identical saved outputs. A separate **12-mission** [navigation benchmark](docs/navigation-results.csv) covers three environments, known/sensor maps and static/moving carts with A* + DWA. All saved missions arrived. Timing is machine-dependent.
+The regression suite has **58 passing tests**. The standard benchmark covers eight environments x eleven planner choices x three controllers: **264 missions**. [sample-results.csv](sample-results.csv) and [planner-results.csv](docs/planner-results.csv) are identical saved outputs. A separate **12-mission** [navigation benchmark](docs/navigation-results.csv) covers three environments, known/sensor maps and static/moving carts with A* + DWA. All saved missions arrived. Timing is machine-dependent.
 
 Optional real-browser integration: `python tests/browser_smoke.py` requires Python, the development-only websockets package and installed Edge; set ROBONAV_BROWSER for another compatible Chromium executable. It verifies actual selectors, worker comparisons with a responsive viewport, sensor/DWA/cart controls, and captures desktop/mobile screenshots. Set ROBONAV_FILE_TEST=1 to test direct offline opening. See [validation](docs/VALIDATION.md) for exact test scope and [file audit](docs/FILE-AUDIT.md).
 
@@ -126,7 +134,7 @@ Optional real-browser integration: `python tests/browser_smoke.py` requires Pyth
 
 No encoder noise, pose estimation, SLAM localization, motor/slip dynamics, configurable resolution, polygonal footprints, ROS connection or hardware validation. Sensor ranges are ideal. Moving carts yield and move discretely; there is no prediction of independently moving humans. Custom maps and every parameter combination are not exhaustively tested. Long missions retain growing telemetry arrays. The roadmap separates delivered navigation work from localization and map/footprint generalization.
 
-GitHub Pages uses the included Actions workflow. Pull requests run validation without publication. Main runs syntax checks, all tests, both benchmarks, real Chromium browser checks and an extracted-offline-package check before deployment. A separate job checks the actual deployed URL, worker responsiveness and share-link reload. Choose GitHub Actions as the Pages source and verify the **v1.5** badge after updates.
+GitHub Pages uses the included Actions workflow. Pull requests run validation without publication. Main runs syntax checks, all tests, both benchmarks, real Chromium browser checks and an extracted-offline-package check before deployment. A separate job checks the actual deployed URL, worker responsiveness and share-link reload. Choose GitHub Actions as the Pages source and verify the **v1.6** badge after updates.
 
 ## Community and releases
 

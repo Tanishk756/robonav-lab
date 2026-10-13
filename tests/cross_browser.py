@@ -18,8 +18,8 @@ if __name__=='__main__':
                     binary='C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' if name=='edge' else 'C:/Program Files/Google/Chrome/Application/chrome.exe'
                     browser=p.chromium.launch(headless=True,executable_path=binary)
                 context=browser.new_context(viewport={'width':1440,'height':1000},accept_downloads=True);page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-                page.goto(f'http://127.0.0.1:{server.server_port}/index.html');expect(page.locator('.version')).to_contain_text('v1.5')
-                assert page.locator('#algorithm option').count()==5 and page.locator('#challenge option').count()==4
+                page.goto(f'http://127.0.0.1:{server.server_port}/index.html');expect(page.locator('.version')).to_contain_text('v1.6')
+                assert page.locator('#algorithm option').count()==11 and page.locator('#challenge option').count()==4
                 assert not page.locator('#usageOptIn').is_checked()
                 page.locator('#startDemo').click();expect(page.locator('#demoText')).to_contain_text('Demo complete',timeout=25000)
                 assert int(page.locator('#replayTime').get_attribute('max'))>10

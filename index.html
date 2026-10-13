@@ -9,17 +9,17 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="author" content="Tanishk Singhal">
   <title>RoboNav Lab | Tanishk Singhal</title>
-  <link rel="stylesheet" href="style.css?v=1.5.1">
-  <script defer src="navigation.js?v=1.5.1"></script><script defer src="core.js?v=1.5.1"></script><script defer src="showcase.js?v=1.5.1"></script><script defer src="sharing.js?v=1.5.1"></script><script defer src="app.js?v=1.5.1"></script>
+  <link rel="stylesheet" href="style.css?v=1.6.0">
+  <script defer src="navigation.js?v=1.6.0"></script><script defer src="core.js?v=1.6.0"></script><script defer src="showcase.js?v=1.6.0"></script><script defer src="sharing.js?v=1.6.0"></script><script defer src="app.js?v=1.6.0"></script>
 </head>
 <body>
 <a class="skip-link" href="#map">Skip to navigation canvas</a>
 <header class="topbar">
-  <div class="brand"><span class="brand-icon" aria-hidden="true">âŒ˜</span><div>RoboNav <b>Lab</b><small>A ROBOTICS PROJECT BY TANISHK SINGHAL</small></div></div>
+  <div class="brand"><span class="brand-icon" aria-hidden="true">⌘</span><div>RoboNav <b>Lab</b><small>A ROBOTICS PROJECT BY TANISHK SINGHAL</small></div></div>
   <div class="top-actions"><span class="offline">OFFLINE / LOCAL</span><button id="help" class="quiet">Quick guide <span>?</span></button></div>
 </header>
 <main>
-  <div class="page-title"><div><span class="eyebrow">TANISHK SINGHAL / ROBOTICS &amp; AUTONOMY</span><h1>Navigate. Observe. Compare.</h1></div><span class="version">2D SIMULATION <b>v1.5</b></span></div>
+  <div class="page-title"><div><span class="eyebrow">TANISHK SINGHAL / ROBOTICS &amp; AUTONOMY</span><h1>Navigate. Observe. Compare.</h1></div><span class="version">2D SIMULATION <b>v1.6</b></span></div>
   <section class="welcome panel" aria-label="Start here">
     <div><span class="eyebrow">FREE / OPEN SOURCE / NO ACCOUNT</span><h2>Change the world. Watch the robot adapt.</h2><p>Explore planning, clearance and LiDAR navigation. Start a six-second guided mission, then try a challenge and share your result.</p></div>
     <div class="welcome-actions"><button id="startDemo" class="primary">Start guided demo</button><button id="simpleView" aria-pressed="false">Simple view</button><a href="https://github.com/Tanishk756/robonav-lab/issues/new/choose" target="_blank" rel="noopener noreferrer">Feedback / contribute</a></div>
@@ -29,12 +29,12 @@
     <aside class="controls panel">
       <div class="section-heading"><h2>Mission setup</h2><span>01</span></div>
       <label for="example">Example gallery</label><select id="example"><option value="warehouse">First mission</option><option value="discovery">Discover the warehouse</option><option value="carts">Moving cart encounter</option><option value="clearance">Doorway does not fit</option><option value="costs">Prefer wider routes</option><option value="unknown">Unknown is blocked</option></select>
-      <button id="loadExample" class="full">Load example</button><p id="exampleDescription" class="hint" aria-live="polite">Known warehouse map with A* and waypoints. Run, pause, then compare all five planners.</p>
+      <button id="loadExample" class="full">Load example</button><p id="exampleDescription" class="hint" aria-live="polite">Known warehouse map with A* and waypoints. Run, pause, then compare all eleven planners.</p>
       <label for="challenge">Navigation challenges</label><select id="challenge"><option value="fit">Fit through the doorway</option><option value="shortest">Find the shortest grid route</option><option value="fast">Beat 35 simulation seconds</option><option value="safe">Keep 30 cm clearance</option></select>
       <button id="loadChallenge" class="full">Start challenge</button><p id="challengeResult" class="hint" aria-live="polite">Choose a category: reachability, distance, time or clearance. Scores stay separate.</p>
-      <label for="scenario">Environment</label><select id="scenario"><option value="warehouse">Warehouse aisles</option><option value="corridors">Alternating corridors</option><option value="clutter">Seeded clutter Â· 731</option><option value="empty">Open floor</option><option value="office">Office suites</option><option value="slalom">Slalom barriers</option><option value="rooms">Four rooms</option><option value="loading">Loading dock</option></select>
-      <label for="algorithm">Path planner</label><select id="algorithm"><option value="astar">A* - Octile heuristic</option><option value="dijkstra">Dijkstra - Uniform cost</option><option value="weighted">Weighted A* - 1.8x heuristic</option><option value="greedy">Greedy best-first</option><option value="bfs">Breadth-first - Fewest steps</option></select>
-      <p class="hint">A* and Dijkstra minimize weighted cost. Weighted A* and greedy trade optimality for search effort. BFS minimizes grid steps, ignoring distance and proximity costs.</p>
+      <label for="scenario">Environment</label><select id="scenario"><option value="warehouse">Warehouse aisles</option><option value="corridors">Alternating corridors</option><option value="clutter">Seeded clutter · 731</option><option value="empty">Open floor</option><option value="office">Office suites</option><option value="slalom">Slalom barriers</option><option value="rooms">Four rooms</option><option value="loading">Loading dock</option></select>
+      <label for="algorithm">Path planner</label><select id="algorithm"><option value="astar">A* - Octile heuristic</option><option value="dijkstra">Dijkstra - Uniform cost</option><option value="weighted">Weighted A* - 1.8x heuristic</option><option value="greedy">Greedy best-first</option><option value="bfs">Breadth-first - Fewest steps</option><option value="bidijkstra">Bidirectional Dijkstra - Weighted cost</option><option value="bibfs">Bidirectional BFS - Fewest steps</option><option value="fringe">Fringe Search - Iterative thresholds</option><option value="theta">Theta* - Any-angle</option><option value="euclidean">A* - Euclidean heuristic</option><option value="chebyshev">A* - Chebyshev heuristic</option></select>
+      <p class="hint">A* variants, Dijkstra, bidirectional Dijkstra and Fringe Search minimize weighted grid cost. BFS variants minimize grid steps. Weighted A* and greedy are approximate. Theta* searches collision-checked any-angle routes with sampled proximity costs; its cost and route shape use a different model.</p>
       <details class="robot-config"><summary>Robot configuration</summary>
         <label for="controller">Path-following controller</label><select id="controller"><option value="waypoint">Heading + waypoints</option><option value="pursuit">Guarded pure pursuit</option><option value="dwa">Dynamic window (DWA)</option></select>
         <label for="navigation">Navigation map</label><select id="navigation"><option value="known">Fully known world</option><option value="sensor">LiDAR observed map</option></select>
@@ -52,18 +52,18 @@
         <p class="hint">Amber halos show obstacle inflation; shaded cells exclude robot centres. The teal ring shows robot radius plus safety margin. Configuration changes reset the mission.</p>
       </details>
       <div class="range-label"><label for="speed">Cruise speed</label><output id="speedValue">1.6 m/s</output></div><input id="speed" type="range" min="0.4" max="3" step="0.2" value="1.6">
-      <div class="button-pair"><button id="run" class="primary">â–¶ Run mission</button><button id="reset" title="Reset robot" aria-label="Reset robot">â†º</button></div>
+      <div class="button-pair"><button id="run" class="primary">▶ Run mission</button><button id="reset" title="Reset robot" aria-label="Reset robot">↺</button></div>
       <button id="plan" class="full">Plan route</button>
       <div class="divider"></div>
       <div class="section-heading"><h2>Map editor</h2><span>02</span></div>
       <div class="tools" role="group" aria-label="Map editing tool">
-        <button data-tool="wall" class="selected" aria-pressed="true"><span>â–§</span> Wall <kbd>1</kbd></button>
-        <button data-tool="erase" aria-pressed="false"><span>âŒ«</span> Erase <kbd>2</kbd></button>
+        <button data-tool="wall" class="selected" aria-pressed="true"><span>▧</span> Wall <kbd>1</kbd></button>
+        <button data-tool="erase" aria-pressed="false"><span>⌫</span> Erase <kbd>2</kbd></button>
         <button data-tool="start" aria-pressed="false"><span class="teal">S</span> Start <kbd>3</kbd></button>
         <button data-tool="goal" aria-pressed="false"><span class="lime">G</span> Goal <kbd>4</kbd></button>
       </div>
       <p class="hint">Click or drag on the map. Walls can be added during a mission.</p>
-      <button id="obstacle" class="full accent-outline">ï¼‹ Block route ahead</button>
+      <button id="obstacle" class="full accent-outline">＋ Block route ahead</button>
       <div class="divider"></div>
       <div class="section-heading"><h2>Layers</h2><span>03</span></div>
       <label class="check"><input type="checkbox" id="showRoutes" checked> Overlay compared planner routes</label>
@@ -87,50 +87,50 @@
     </aside>
     <section class="workspace">
       <div class="metrics">
-        <div><span>PLANNED ROUTE</span><strong id="routeMetric">â€”</strong><small>length of selected route</small></div>
-        <div><span>PLANNING TIME</span><strong id="planMetric">â€”</strong><small>latest search</small></div>
+        <div><span>PLANNED ROUTE</span><strong id="routeMetric">—</strong><small>length of selected route</small></div>
+        <div><span>PLANNING TIME</span><strong id="planMetric">—</strong><small>latest search</small></div>
         <div><span>DISTANCE DRIVEN</span><strong id="distanceMetric">0.00 <em>m</em></strong><small>integrated robot motion</small></div>
         <div><span>TRACKING RMSE</span><strong id="errorMetric">0.000 <em>m</em></strong><small>distance to planned path</small></div>
       </div>
       <div class="map-panel panel">
-        <div class="map-toolbar"><div><span class="status-dot" id="statusDot"></span><strong id="status">Ready to navigate</strong></div><div class="map-info"><span>32 Ã— 24 m</span><button id="snapshot" class="quiet" title="Export map screenshot">Save PNG</button></div></div>
-        <div class="canvas-wrap"><canvas id="map" width="960" height="720" tabindex="0" aria-label="Editable 32 by 24 metre navigation map. Choose Wall, Erase, Start or Goal, then click a cell. Arrow keys move the keyboard cursor; Enter edits the selected cell."></canvas><div class="map-scale">1 m / cell <span>â”€â”€â”€â”€</span></div></div>
-        <div class="map-footer"><span><i class="swatch lime-bg"></i> Planned path</span><span><i class="swatch amber-bg"></i> Robot trail</span><span id="cursor">x â€” &nbsp; y â€”</span><span id="simClock">00:00.0 sim</span></div>
+        <div class="map-toolbar"><div><span class="status-dot" id="statusDot"></span><strong id="status">Ready to navigate</strong></div><div class="map-info"><span>32 × 24 m</span><button id="snapshot" class="quiet" title="Export map screenshot">Save PNG</button></div></div>
+        <div class="canvas-wrap"><canvas id="map" width="960" height="720" tabindex="0" aria-label="Editable 32 by 24 metre navigation map. Choose Wall, Erase, Start or Goal, then click a cell. Arrow keys move the keyboard cursor; Enter edits the selected cell."></canvas><div class="map-scale">1 m / cell <span>────</span></div></div>
+        <div class="map-footer"><span><i class="swatch lime-bg"></i> Planned path</span><span><i class="swatch amber-bg"></i> Robot trail</span><span id="cursor">x — &nbsp; y —</span><span id="simClock">00:00.0 sim</span></div>
       </div>
       <section class="panel replay-panel"><h2>Mission replay</h2><p class="hint">Recorded poses, observations and route changes. Scrubbing does not move the live robot.</p><div class="replay-controls"><button id="playReplay">Play replay</button><button id="exitReplay">Return to live</button><label for="replayTime">Recorded frame</label><input id="replayTime" type="range" min="0" max="0" step="1" value="0"><output id="replayLabel">Run a mission to record.</output></div><div id="replayEvents" class="replay-events" aria-label="Recorded event markers"></div></section>
       <details class="panel how-it-works"><summary>How this experiment works</summary><p id="explanation">A* and Dijkstra minimize weighted graph cost. BFS minimizes grid steps. Sensor mode knows only observed occupancy; the simulator retains a separate final collision guard.</p><p class="hint">Ideal scans, known pose and cooperative grid carts. This is an educational simulator, not hardware safety certification.</p></details>
       <div class="experiment panel">
-        <div class="experiment-head"><div><span class="eyebrow">REPEATABLE EXPERIMENTS</span><h2>Let the algorithms compete.</h2><p>Compare all five planners on the current map. Same snapshot, endpoints and movement rules.</p></div><button id="compare" class="primary">Compare planners</button></div>
-        <p class="route-legend">Overlays: A* (lime), Dijkstra (teal), Weighted A* (purple), Greedy (amber), BFS (blue). Dash patterns also differ.</p>
-        <div class="table-scroll"><table><thead><tr><th>Planner</th><th>Path length</th><th>Weighted cost</th><th>Expanded cells</th><th>Median timeÂ¹</th><th>Result</th></tr></thead><tbody id="results"><tr><td colspan="6" class="empty-row">Run a comparison to measure all planners on your map.</td></tr></tbody></table></div>
-        <div class="experiment-bottom"><span>Â¹ 25 searches per planner; timing depends on your browser.</span><button id="exportResults" class="quiet" disabled>Export results CSV â†“</button></div>
+        <div class="experiment-head"><div><span class="eyebrow">REPEATABLE EXPERIMENTS</span><h2>Let the algorithms compete.</h2><p>Compare all eleven planners on the current map. Same snapshot, endpoints and movement rules.</p></div><button id="compare" class="primary">Compare planners</button></div>
+        <p class="route-legend">Overlays use a distinct color and dash pattern for each planner. Hover or focus a planner name below to see its objective. Theta* may connect nonadjacent cell centers; compare its length separately from grid optimality.</p>
+        <div class="table-scroll"><table><thead><tr><th>Planner</th><th>Path length</th><th>Weighted cost</th><th>Expanded cells</th><th>Median time¹</th><th>Result</th></tr></thead><tbody id="results"><tr><td colspan="6" class="empty-row">Run a comparison to measure all planners on your map.</td></tr></tbody></table></div>
+        <div class="experiment-bottom"><span>¹ 25 searches per planner; timing depends on your browser.</span><button id="exportResults" class="quiet" disabled>Export results CSV ↓</button></div>
       </div>
       <div class="experiment panel">
         <div class="experiment-head"><div><span class="eyebrow">CONTROL EXPERIMENT</span><h2>Precision or smoother motion?</h2><p>Simulate all three controllers from start to goal with identical settings.</p></div><button id="compareControllers">Compare controllers</button></div>
         <div class="controller-views"><figure><canvas id="compareWaypoint" width="320" height="240" aria-label="Recorded waypoint trajectory"></canvas><figcaption>Waypoints</figcaption></figure><figure><canvas id="comparePursuit" width="320" height="240" aria-label="Recorded pursuit trajectory"></canvas><figcaption>Guarded pursuit</figcaption></figure><figure><canvas id="compareDwa" width="320" height="240" aria-label="Recorded dynamic window trajectory"></canvas><figcaption>Dynamic window</figcaption></figure></div>
         <div class="replay-controls"><button id="playComparison">Play controller comparison</button><label for="comparisonTime">Shared simulation time</label><input id="comparisonTime" type="range" min="0" max="0" step="0.1" value="0"><output id="comparisonLabel">Compare controllers first.</output></div>
         <div class="table-scroll"><table><thead><tr><th>Controller</th><th>Time (s)</th><th>Driven (m)</th><th>RMSE (m)</th><th>Min clearance (m)</th><th>Replans</th><th>Recoveries</th><th>Status</th></tr></thead><tbody id="controllerResults"><tr><td colspan="8" class="empty-row">Run a control experiment to compare complete missions.</td></tr></tbody></table></div>
-        <div class="experiment-bottom"><span>Fixed 1/60 s physics Â· 600 s simulation limit Â· configured moving carts included</span><button id="exportControllers" class="quiet" disabled>Export control CSV â†“</button></div>
+        <div class="experiment-bottom"><span>Fixed 1/60 s physics · 600 s simulation limit · configured moving carts included</span><button id="exportControllers" class="quiet" disabled>Export control CSV ↓</button></div>
       </div>
     </section>
     <aside class="telemetry panel">
       <div class="section-heading"><h2>Robot telemetry</h2><span>LIVE</span></div>
-      <div class="robot-id"><span class="robot-symbol">â—Ž</span><div><strong>AMRâ€“01</strong><small>Differential drive</small></div><span class="tag">SIM</span></div>
-      <p id="missionReason" class="hint" aria-live="polite"></p><dl class="readings"><div><dt>Navigation state</dt><dd id="navigationState">Idle</dd></div><div><dt>Observed map</dt><dd id="coverage">0%</dd></div><div><dt>Min body clearance</dt><dd id="minClearance">-</dd></div><div><dt>Recovery attempts</dt><dd id="recoveries">0</dd></div><div><dt>Angular travel</dt><dd id="angularTravel">0 rad</dd></div><div><dt>Peak acceleration</dt><dd id="peakAcceleration">0 m/s2</dd></div><div><dt>Weighted path cost</dt><dd id="weightedCost">0.00</dd></div><div><dt>Costmap build</dt><dd id="costmapTime">0.00 ms</dd></div><div><dt>Position X</dt><dd id="poseX">3.50 m</dd></div><div><dt>Position Y</dt><dd id="poseY">3.50 m</dd></div><div><dt>Heading</dt><dd id="heading">0.0Â°</dd></div><div><dt>Linear velocity</dt><dd id="linear">0.00 m/s</dd></div><div><dt>Angular velocity</dt><dd id="angular">0.00 rad/s</dd></div><div><dt>Left / right wheel</dt><dd id="wheels">0.00 / 0.00</dd></div><div><dt>Replans</dt><dd id="replans">0</dd></div><div><dt>Guard fallbacks</dt><dd id="fallbacks">0</dd></div></dl>
+      <div class="robot-id"><span class="robot-symbol">◎</span><div><strong>AMR–01</strong><small>Differential drive</small></div><span class="tag">SIM</span></div>
+      <p id="missionReason" class="hint" aria-live="polite"></p><dl class="readings"><div><dt>Navigation state</dt><dd id="navigationState">Idle</dd></div><div><dt>Observed map</dt><dd id="coverage">0%</dd></div><div><dt>Min body clearance</dt><dd id="minClearance">-</dd></div><div><dt>Recovery attempts</dt><dd id="recoveries">0</dd></div><div><dt>Angular travel</dt><dd id="angularTravel">0 rad</dd></div><div><dt>Peak acceleration</dt><dd id="peakAcceleration">0 m/s2</dd></div><div><dt>Weighted path cost</dt><dd id="weightedCost">0.00</dd></div><div><dt>Costmap build</dt><dd id="costmapTime">0.00 ms</dd></div><div><dt>Position X</dt><dd id="poseX">3.50 m</dd></div><div><dt>Position Y</dt><dd id="poseY">3.50 m</dd></div><div><dt>Heading</dt><dd id="heading">0.0°</dd></div><div><dt>Linear velocity</dt><dd id="linear">0.00 m/s</dd></div><div><dt>Angular velocity</dt><dd id="angular">0.00 rad/s</dd></div><div><dt>Left / right wheel</dt><dd id="wheels">0.00 / 0.00</dd></div><div><dt>Replans</dt><dd id="replans">0</dd></div><div><dt>Guard fallbacks</dt><dd id="fallbacks">0</dd></div></dl>
       <div class="divider"></div>
-      <div class="section-heading"><h2>LiDAR scan</h2><span>360Â°</span></div>
+      <div class="section-heading"><h2>LiDAR scan</h2><span>360°</span></div>
       <canvas id="scan" width="240" height="200" aria-label="Robot-relative LiDAR scan"></canvas>
-      <div class="sensor-caption"><span>72 rays / 8 m range</span><strong id="nearest">â€”</strong></div>
+      <div class="sensor-caption"><span>72 rays / 8 m range</span><strong id="nearest">—</strong></div>
       <div class="divider"></div>
       <div class="section-heading"><h2>Mission log</h2><span>EVENTS</span></div>
       <div id="log" class="event-log" aria-live="polite"></div>
-      <button id="exportTelemetry" class="full">Export telemetry CSV â†“</button>
+      <button id="exportTelemetry" class="full">Export telemetry CSV ↓</button>
       <p class="hint">Ideal LiDAR with known or sensor-derived maps. Ground-truth pose; no SLAM localization or hardware connection.</p>
     </aside>
   </div>
-  <footer><span>Â© 2026 <a href="https://github.com/Tanishk756" target="_blank" rel="noopener noreferrer">Tanishk Singhal</a> <b>/</b> RoboNav Lab <b>/</b> <a href="https://github.com/Tanishk756/robonav-lab">Source &amp; contribute</a> <b>/</b> <a href="https://github.com/Tanishk756/robonav-lab/releases/latest">Offline release</a></span><span>1 cell = 1 m Â· Configurable circular footprint Â· Wheel track 0.42 m</span></footer>
+  <footer><span>© 2026 <a href="https://github.com/Tanishk756" target="_blank" rel="noopener noreferrer">Tanishk Singhal</a> <b>/</b> RoboNav Lab <b>/</b> <a href="https://github.com/Tanishk756/robonav-lab">Source &amp; contribute</a> <b>/</b> <a href="https://github.com/Tanishk756/robonav-lab/releases/latest">Offline release</a></span><span>1 cell = 1 m · Configurable circular footprint · Wheel track 0.42 m</span></footer>
 </main>
 <div role="status" aria-live="polite" class="toast" id="toast" hidden></div>
-<dialog id="guide"><div class="dialog-head"><h2>Your first mission</h2><button id="closeGuide" aria-label="Close guide">âœ•</button></div><ol><li>Pick an environment and a planner.</li><li>Click <b>Run mission</b> to follow the planned route. Pause or reset at any time.</li><li>Click <b>Block route ahead</b> while running to see obstacle-triggered replanning.</li><li>Use the editor to draw walls, erase cells, or move start and goal.</li><li>Click <b>Compare planners</b>, then export results for analysis.</li></ol><h3>Keyboard controls</h3><p><b>Space</b>: run/pause Â· <b>R</b>: reset Â· <b>1â€“4</b>: edit tools. Focus the map, use arrow keys to select a cell, then <b>Enter</b> to apply the tool.</p><h3>What this model assumes</h3><p>Ground-truth position. Fully known mode plans from world occupancy; sensor mode builds a log-odds map using ideal LiDAR at 5 Hz. Optimistic mode explores unknown cells; conservative mode blocks them. Inserted walls enter sensor planning only after observation. Choose any of five planners across eight environments. Purple cells show soft proximity costs; amber halos and the teal ring show hard clearance. Choose heading-based waypoint control or pure pursuit with a forward collision check and waypoint fallback. Footprint inflation excludes unsafe robot-centre cells; exact transition checks validate graph edges. Dynamic window samples acceleration-limited commands. Moving grid carts are deterministic and yield to the robot.</p><p>Exported telemetry uses simulation time. Controller comparisons use the same fixed physics timestep. See README.md for equations, limitations and a demo script.</p></dialog>
+<dialog id="guide"><div class="dialog-head"><h2>Your first mission</h2><button id="closeGuide" aria-label="Close guide">✕</button></div><ol><li>Pick an environment and a planner.</li><li>Click <b>Run mission</b> to follow the planned route. Pause or reset at any time.</li><li>Click <b>Block route ahead</b> while running to see obstacle-triggered replanning.</li><li>Use the editor to draw walls, erase cells, or move start and goal.</li><li>Click <b>Compare planners</b>, then export results for analysis.</li></ol><h3>Keyboard controls</h3><p><b>Space</b>: run/pause · <b>R</b>: reset · <b>1–4</b>: edit tools. Focus the map, use arrow keys to select a cell, then <b>Enter</b> to apply the tool.</p><h3>What this model assumes</h3><p>Ground-truth position. Fully known mode plans from world occupancy; sensor mode builds a log-odds map using ideal LiDAR at 5 Hz. Optimistic mode explores unknown cells; conservative mode blocks them. Inserted walls enter sensor planning only after observation. Choose any of eleven planners across eight environments. Purple cells show soft proximity costs; amber halos and the teal ring show hard clearance. Choose heading-based waypoint control or pure pursuit with a forward collision check and waypoint fallback. Footprint inflation excludes unsafe robot-centre cells; exact transition checks validate graph edges. Dynamic window samples acceleration-limited commands. Moving grid carts are deterministic and yield to the robot.</p><p>Exported telemetry uses simulation time. Controller comparisons use the same fixed physics timestep. See README.md for equations, limitations and a demo script.</p></dialog>
 </body>
 </html>
